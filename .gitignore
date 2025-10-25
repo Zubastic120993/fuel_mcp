@@ -1,0 +1,11 @@
+# Virtual environment
+venv/
+# Build artifacts
+*.egg-info/
+__pycache__/
+*.pyc
+# OS files
+.DS_Store
+# IDE
+.vscode/
+.idea/

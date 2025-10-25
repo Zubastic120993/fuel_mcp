@@ -1,0 +1,14 @@
+[project]
+name = "fuel_mcp"
+version = "0.1.0"
+description = "Local MCP module for fuel mass-volume calculations"
+authors = [{name = "Volodymyr Zub"}]
+requires-python = ">=3.10"
+
+[build-system]
+requires = ["setuptools"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["*"]
+exclude = ["tests*"]
