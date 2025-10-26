@@ -132,6 +132,50 @@ def correct_volume(fuel: str, observed_m3: float, tempC: float,
     result["V15_m3"] = round(observed_m3 * result["VCF"], 3)
     return result
 
+# =====================================================
+# 🔹  MASS → VOLUME CALCULATION
+# =====================================================
+def correct_mass(fuel: str, mass_ton: float, tempC: float,
+                 db_path: str | None = None) -> dict:
+    """
+    Given mass (t), fuel type, and observed temperature (°C),
+    compute:
+      - Volume at observed temperature (m³)
+      - Volume at 15 °C (m³, reference)
+    """
+    from pathlib import Path
+
+    if db_path is None:
+        db_path = Path(__file__).parent / "tables" / "fuel_data.json"
+
+    # Load density data
+    with open(db_path) as f:
+        fuels = json.load(f)
+
+    rho15 = fuels[fuel]["density_15C"]  # kg/m³ @15°C
+    rho15_ton_m3 = rho15 / 1000          # ton/m³
+
+    # 1️⃣ Get the correction factor
+    result = vcf_iso_official(rho15, tempC)
+    vcf = result["VCF"]
+
+    # 2️⃣ Density at observed temperature
+    rhoT_ton_m3 = rho15_ton_m3 * vcf
+
+    # 3️⃣ Compute volumes
+    volume_obs_m3 = mass_ton / rhoT_ton_m3
+    volume_15_m3 = volume_obs_m3 * vcf
+
+    # 4️⃣ Return all results
+    result.update({
+        "fuel": fuel,
+        "mass_ton": mass_ton,
+        "rhoT_ton_m3": round(rhoT_ton_m3, 6),
+        "volume_obs_m3": round(volume_obs_m3, 3),
+        "V15_m3": round(volume_15_m3, 3),
+    })
+    return result
+
 
 # =====================================================
 # 🔹  DEMONSTRATION
