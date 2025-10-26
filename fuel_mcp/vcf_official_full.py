@@ -19,6 +19,7 @@ Special case (770 ≤ ρ < 778):
 import math
 import json
 from pathlib import Path
+from .unit_converter import convert
 
 # =====================================================
 # 🔹  OFFICIAL COEFFICIENTS (ISO 91-1 Annex B)
@@ -179,6 +180,9 @@ def correct_mass(fuel: str, mass_ton: float, tempC: float,
 # =====================================================
 # 🔹  UNIVERSAL AUTO-DETECT FUNCTION
 # =====================================================
+# =====================================================
+# 🔹  UNIVERSAL AUTO-DETECT FUNCTION (extended)
+# =====================================================
 def auto_correct(
     fuel: str,
     volume_m3: float | None = None,
@@ -190,25 +194,43 @@ def auto_correct(
     Automatically detects whether to perform:
       - Volume → Mass (if volume given)
       - Mass → Volume (if mass given)
-    Returns detailed results dictionary.
+    Then enriches results with equivalent units:
+      - m³, barrels, litres, US gallons
     """
     if tempC is None:
         raise ValueError("Temperature (°C) must be provided.")
 
-    # Volume → Mass path
+    # ───────────────────────────────────────────────
+    # Select calculation direction
+    # ───────────────────────────────────────────────
     if volume_m3 is not None and mass_ton is None:
         result = correct_volume(fuel, volume_m3, tempC, db_path)
         result["mode"] = "volume_to_mass"
-        return result
 
-    # Mass → Volume path
+        # add mass (t) = V15 × ρ15 / 1000
+        rho15 = result["rho15"] / 1000
+        result["mass_ton"] = round(result["V15_m3"] * rho15, 3)
+        base_volume = result["V15_m3"]
+
     elif mass_ton is not None and volume_m3 is None:
         result = correct_mass(fuel, mass_ton, tempC, db_path)
         result["mode"] = "mass_to_volume"
-        return result
+        base_volume = result["V15_m3"]
 
     else:
         raise ValueError("Provide either volume_m3 or mass_ton, not both.")
+
+    # ───────────────────────────────────────────────
+    # Add equivalent units using ASTM conversions
+    # ───────────────────────────────────────────────
+    result["equivalents"] = {
+        "m3_15C": round(base_volume, 3),
+        "barrels_15C": round(convert(base_volume, "cum", "barrel"), 3),
+        "litres_15C": round(convert(base_volume, "cum", "litre"), 1),
+        "usg_15C": round(convert(base_volume, "cum", "usg"), 1)
+    }
+
+    return result
 
 
 # =====================================================
