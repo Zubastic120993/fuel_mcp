@@ -176,6 +176,40 @@ def correct_mass(fuel: str, mass_ton: float, tempC: float,
     })
     return result
 
+# =====================================================
+# 🔹  UNIVERSAL AUTO-DETECT FUNCTION
+# =====================================================
+def auto_correct(
+    fuel: str,
+    volume_m3: float | None = None,
+    mass_ton: float | None = None,
+    tempC: float | None = None,
+    db_path: str | None = None
+) -> dict:
+    """
+    Automatically detects whether to perform:
+      - Volume → Mass (if volume given)
+      - Mass → Volume (if mass given)
+    Returns detailed results dictionary.
+    """
+    if tempC is None:
+        raise ValueError("Temperature (°C) must be provided.")
+
+    # Volume → Mass path
+    if volume_m3 is not None and mass_ton is None:
+        result = correct_volume(fuel, volume_m3, tempC, db_path)
+        result["mode"] = "volume_to_mass"
+        return result
+
+    # Mass → Volume path
+    elif mass_ton is not None and volume_m3 is None:
+        result = correct_mass(fuel, mass_ton, tempC, db_path)
+        result["mode"] = "mass_to_volume"
+        return result
+
+    else:
+        raise ValueError("Provide either volume_m3 or mass_ton, not both.")
+
 
 # =====================================================
 # 🔹  DEMONSTRATION
