@@ -1,11 +1,24 @@
-# Virtual environment
+# Virtual environments
 venv/
-# Build artifacts
-*.egg-info/
+.env/
+
+# Bytecode and cache
 __pycache__/
 *.pyc
-# OS files
+*.pyo
+
+# OS / Editor files
 .DS_Store
-# IDE
 .vscode/
 .idea/
+
+# Logs and temporary files
+*.log
+*.tmp
+
+# Local data or auto-generated reports
+fuel_mcp/tables/*.md
+fuel_mcp/tables/*.json
+
+# Keep only official CSV tables
+!fuel_mcp/tables/official/*.csv
