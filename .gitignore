@@ -22,3 +22,4 @@ fuel_mcp/tables/*.json
 
 # Keep only official CSV tables
 !fuel_mcp/tables/official/*.csv
+.env
