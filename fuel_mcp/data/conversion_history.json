@@ -40,5 +40,28 @@
       }
     },
     "timestamp": "2025-10-27T01:14:09.497611Z"
+  },
+  {
+    "input_density_15C": 15.0,
+    "short_tons_per_m3": 0.7197,
+    "long_tons_per_m3": 0.6426,
+    "source_table": "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "_meta": {
+      "query": "convert density 15C 980 to long tons",
+      "selected_table": "ASTM_Table16_Reverse_MetricTonnes_to_Density15C",
+      "similarity": 0.5872,
+      "timestamp": "2025-10-27T02:18:58.394229Z"
+    }
+  },
+  {
+    "input_density_15C": 850.0,
+    "weight_in_vacuo_to_air_factor": 0.99905,
+    "source_table": "ASTM_Table56_Density15C_to_VacuoAirFactor_norm.csv",
+    "_meta": {
+      "query": "get correction factor for 850 kg/m\u00b3 fuel",
+      "selected_table": "ASTM_Table57_Density15C_to_AirVacuoFactor",
+      "similarity": 0.4372,
+      "timestamp": "2025-10-27T02:18:58.658649Z"
+    }
   }
 ]

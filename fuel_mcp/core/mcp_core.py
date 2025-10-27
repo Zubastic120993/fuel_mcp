@@ -1,95 +1,96 @@
 # fuel_mcp/core/mcp_core.py
 """
-MCP Core Interface
-==================
-Unified API for all conversions inside fuel_mcp.
-Now includes automatic logging to data/conversion_history.json.
+MCP Core Integration with RAG and Conversion Engine
+---------------------------------------------------
+This connects the semantic retriever (RAG) with the conversion engine.
+MCP can now interpret natural language queries, find the right table,
+and execute the appropriate conversion.
 """
 
-import json
 from datetime import datetime
 from pathlib import Path
+from dotenv import load_dotenv
+import json
+import os
 
-from fuel_mcp.core.conversion_dispatcher import convert as table_convert
-from fuel_mcp.vcf_official_full import auto_correct
+from fuel_mcp.core.conversion_dispatcher import convert
+from fuel_mcp.core.rag_bridge import find_table_for_query
 
+load_dotenv()
 
-# =====================================================
-# 🔹 Logging helper
-# =====================================================
-def log_conversion(entry: dict):
-    """Append each conversion result to a JSON log."""
-    data_dir = Path(__file__).parent.parent / "data"
-    data_dir.mkdir(exist_ok=True)
+# -----------------------------------------------------
+# 🗂️ Storage for conversation / query history
+# -----------------------------------------------------
+DATA_DIR = Path(__file__).parent.parent / "data"
+DATA_DIR.mkdir(exist_ok=True)
+HISTORY_FILE = DATA_DIR / "conversion_history.json"
 
-    log_file = data_dir / "conversion_history.json"
+# -----------------------------------------------------
+# 🧠 Main dispatcher
+# -----------------------------------------------------
+def query_mcp(query: str) -> dict:
+    """
+    Accepts a natural-language conversion query, automatically
+    finds the right table via RAG, performs the calculation,
+    and logs the result.
+    """
 
-    # Read existing log (if exists)
-    if log_file.exists():
+    print(f"\n🧩 MCP query received → {query}")
+
+    # 1️⃣ Ask RAG which table is most relevant
+    candidates = find_table_for_query(query, top_k=3)
+    top = candidates[0]
+    print(f"🔍 Selected table: {top['table']} (similarity={top['similarity']})")
+
+    # 2️⃣ Infer operation type based on the query
+    ctype = None
+    if "density" in query and "ton" in query:
+        ctype = "density_to_mass"
+    elif "density" in query and "volume" in query:
+        ctype = "density_to_volume"
+    elif "vacuo" in query or "air" in query or "correction" in query:
+        ctype = "air_correction"
+
+    if not ctype:
+        raise ValueError("❌ Could not infer conversion type from query")
+
+    # 3️⃣ Extract numeric value (basic)
+    import re
+    match = re.search(r"(\d+(?:\.\d+)?)", query)
+    if not match:
+        raise ValueError("❌ No numeric value found in query")
+    value = float(match.group(1))
+
+    # 4️⃣ Perform conversion
+    result = convert(ctype, value)
+    result["_meta"] = {
+        "query": query,
+        "selected_table": top["table"],
+        "similarity": top["similarity"],
+        "timestamp": datetime.utcnow().isoformat() + "Z",
+    }
+
+    # 5️⃣ Log history
+    history = []
+    if HISTORY_FILE.exists():
         try:
-            with open(log_file, "r") as f:
-                log = json.load(f)
-        except json.JSONDecodeError:
-            log = []
-    else:
-        log = []
+            history = json.load(open(HISTORY_FILE))
+        except Exception:
+            history = []
+    history.append(result)
+    with open(HISTORY_FILE, "w") as f:
+        json.dump(history, f, indent=2)
 
-    entry["timestamp"] = datetime.utcnow().isoformat() + "Z"
-    log.append(entry)
+    print("✅ Conversion complete.\n")
+    return result
 
-    with open(log_file, "w") as f:
-        json.dump(log, f, indent=2)
-
-
-# =====================================================
-# 🔹 Unified MCP Conversion API
-# =====================================================
-def mcp_convert(conversion_type: str, **kwargs) -> dict:
-    """
-    Central dispatcher for all conversion requests.
-    Supports:
-      - "density_to_mass"
-      - "density_to_volume"
-      - "air_correction"
-      - "vcf" (analytical ISO 91-1 correction)
-    """
-    try:
-        if conversion_type in ["density_to_mass", "density_to_volume", "air_correction"]:
-            value = kwargs.get("value")
-            if value is None:
-                raise ValueError("Missing required argument: 'value'")
-            result = table_convert(conversion_type, value)
-
-        elif conversion_type == "vcf":
-            fuel = kwargs.get("fuel")
-            tempC = kwargs.get("tempC")
-            vol = kwargs.get("volume_m3")
-            mass = kwargs.get("mass_ton")
-            if fuel is None or tempC is None:
-                raise ValueError("Missing required arguments: 'fuel' and 'tempC'")
-            result = auto_correct(fuel, vol, mass, tempC)
-
-        else:
-            raise ValueError(f"Unsupported conversion type: {conversion_type}")
-
-        # Add metadata + log it
-        result["_meta"] = {"conversion_type": conversion_type, "input": kwargs}
-        log_conversion(result)
-
-        return result
-
-    except Exception as e:
-        return {"error": str(e), "conversion_type": conversion_type}
-
-
-# =====================================================
-# 🔹 Demonstration
-# =====================================================
+# -----------------------------------------------------
+# 🧪 Manual test
+# -----------------------------------------------------
 if __name__ == "__main__":
-    print("🔹 Test: Density → Mass")
-    print(mcp_convert("density_to_mass", value=980))
-
-    print("\n🔹 Test: VCF Analytical Correction")
-    print(mcp_convert("vcf", fuel="diesel", tempC=56, volume_m3=1000))
-
-    print("\n📁 Log file saved at: fuel_mcp/data/conversion_history.json")
+    tests = [
+        "convert density 15C 980 to long tons",
+        "get correction factor for 850 kg/m³ fuel",
+    ]
+    for q in tests:
+        print(query_mcp(q))
