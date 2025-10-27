@@ -63,5 +63,41 @@
       "similarity": 0.4372,
       "timestamp": "2025-10-27T02:18:58.658649Z"
     }
+  },
+  {
+    "input_density_15C": 850.0,
+    "short_tons_per_m3": 0.9358,
+    "long_tons_per_m3": 0.8355,
+    "source_table": "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "_meta": {
+      "query": "convert density 850 to ton",
+      "selected_table": "ASTM_Table16_Density15C_to_MetricTonnes",
+      "similarity": 0.5817,
+      "timestamp": "2025-10-27T17:01:10.108437Z"
+    }
+  },
+  {
+    "input_density_15C": 850.0,
+    "short_tons_per_m3": 0.9358,
+    "long_tons_per_m3": 0.8355,
+    "source_table": "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "_meta": {
+      "query": "convert density 850 to ton at 25C",
+      "selected_table": "ASTM_Table53B_Density15C_to_CubicMeters_per_MetricTon",
+      "similarity": 0.6222,
+      "timestamp": "2025-10-27T17:12:02.108837Z"
+    }
+  },
+  {
+    "input_density_15C": 850.0,
+    "short_tons_per_m3": 0.9358,
+    "long_tons_per_m3": 0.8355,
+    "source_table": "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "_meta": {
+      "query": "convert density 850 to ton at 25C",
+      "selected_table": "ASTM_Table53B_Density15C_to_CubicMeters_per_MetricTon",
+      "similarity": 0.6222,
+      "timestamp": "2025-10-27T17:13:24.938182Z"
+    }
   }
 ]

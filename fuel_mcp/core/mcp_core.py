@@ -12,6 +12,8 @@ from pathlib import Path
 from dotenv import load_dotenv
 import json
 import os
+from datetime import datetime, UTC
+timestamp = datetime.now(UTC).isoformat()
 
 from fuel_mcp.core.conversion_dispatcher import convert
 from fuel_mcp.core.rag_bridge import find_table_for_query
