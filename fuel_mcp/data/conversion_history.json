@@ -1,0 +1,44 @@
+[
+  {
+    "input_density_15C": 980,
+    "short_tons_per_m3": 1.0791,
+    "long_tons_per_m3": 0.9635,
+    "source_table": "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "_meta": {
+      "conversion_type": "density_to_mass",
+      "input": {
+        "value": 980
+      }
+    },
+    "timestamp": "2025-10-27T01:14:09.496910Z"
+  },
+  {
+    "table": "54D",
+    "rho15": 850.0,
+    "tempC": 56,
+    "deltaT": 41.0,
+    "a_or_c": 0.000738588,
+    "b_or_d": -0.03101572,
+    "VCF": 0.96946,
+    "fuel": "diesel",
+    "observed_m3": 1000,
+    "V15_m3": 969.46,
+    "mode": "volume_to_mass",
+    "mass_ton": 824.041,
+    "equivalents": {
+      "m3_15C": 969.46,
+      "barrels_15C": 6097.719,
+      "litres_15C": 969460.0,
+      "usg_15C": 256104.2
+    },
+    "_meta": {
+      "conversion_type": "vcf",
+      "input": {
+        "fuel": "diesel",
+        "tempC": 56,
+        "volume_m3": 1000
+      }
+    },
+    "timestamp": "2025-10-27T01:14:09.497611Z"
+  }
+]
