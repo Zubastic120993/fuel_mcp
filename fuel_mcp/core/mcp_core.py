@@ -19,6 +19,7 @@ from logging.handlers import RotatingFileHandler
 from fuel_mcp.core.conversion_dispatcher import convert
 from fuel_mcp.core.rag_bridge import find_table_for_query
 from fuel_mcp.core.vcf_official_full import vcf_iso_official
+from fuel_mcp.core.error_handler import log_error
 
 # =====================================================
 # 🔧 Environment setup
@@ -200,8 +201,9 @@ def query_mcp(query: str) -> dict:
     # 5️⃣ Save history
     try:
         history = json.load(open(HISTORY_FILE)) if HISTORY_FILE.exists() else []
-    except Exception:
-        history = []
+    except Exception as e:
+        log_error(e, query=query, module="mcp_core")
+        raise
 
     history.append(result)
     with open(HISTORY_FILE, "w") as f:

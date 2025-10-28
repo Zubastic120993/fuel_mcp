@@ -1,4 +1,3 @@
-
 """
 MCP Local API Service
 =====================
@@ -11,13 +10,10 @@ Provides REST endpoints for MCP operations.
 from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from pathlib import Path
-import json
-import traceback
 import logging
-from datetime import datetime, UTC
-
 from fuel_mcp.core.mcp_core import query_mcp
 from fuel_mcp.core.rag_bridge import ONLINE_MODE
+from fuel_mcp.core.error_handler import log_error
 
 # =====================================================
 # 🔧 FastAPI setup
@@ -25,8 +21,7 @@ from fuel_mcp.core.rag_bridge import ONLINE_MODE
 app = FastAPI(title="MCP Local API", version="1.0")
 
 LOG_FILE = Path("logs/mcp_queries.log")
-ERROR_FILE = Path("logs/errors.json")
-ERROR_FILE.parent.mkdir(exist_ok=True)
+LOG_FILE.parent.mkdir(exist_ok=True)
 
 logging.basicConfig(
     level=logging.INFO,
@@ -43,6 +38,7 @@ def get_status():
         mode = "online" if ONLINE_MODE else "offline"
         return {"status": "ok", "mode": mode}
     except Exception as e:
+        log_error(e, module="mcp_api")
         return {"status": "error", "message": str(e)}
 
 # =====================================================
@@ -60,23 +56,8 @@ def run_query(text: str = Query(..., description="MCP natural-language query")):
         return JSONResponse(content=result)
 
     except Exception as e:
-        err_info = {
-            "timestamp": datetime.now(UTC).isoformat(),
-            "query": text,
-            "error_type": type(e).__name__,
-            "message": str(e),
-            "stacktrace": traceback.format_exc(),
-        }
-
-        # append to structured error log
-        try:
-            errors = json.load(open(ERROR_FILE)) if ERROR_FILE.exists() else []
-        except Exception:
-            errors = []
-        errors.append(err_info)
-        with open(ERROR_FILE, "w") as f:
-            json.dump(errors, f, indent=2)
-
+        # Unified structured error capture
+        log_error(e, query=text, module="mcp_api")
         logging.error(f"❌ MCP query failed: {e}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 
