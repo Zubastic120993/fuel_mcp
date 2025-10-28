@@ -10,6 +10,8 @@ import json
 import numpy as np
 import os
 import requests
+import logging
+from datetime import datetime, UTC
 from sentence_transformers import SentenceTransformer
 
 # =====================================================
@@ -55,6 +57,29 @@ else:
     client = None
 
 # =====================================================
+# 🧠 Dynamic RAG Fallback Logic with Structured Logging
+# =====================================================
+LOG_DIR = Path(__file__).parent.parent / "logs"
+LOG_DIR.mkdir(exist_ok=True)
+RAG_LOG = LOG_DIR / "rag_activity.json"
+
+def log_rag_event(event_type: str, detail: str):
+    """Append structured RAG event to JSON log."""
+    entry = {
+        "timestamp": datetime.now(UTC).isoformat(),
+        "event": event_type,
+        "detail": detail,
+        "mode": "online" if ONLINE_MODE else "offline"
+    }
+    try:
+        existing = json.load(open(RAG_LOG)) if RAG_LOG.exists() else []
+    except Exception:
+        existing = []
+    existing.append(entry)
+    with open(RAG_LOG, "w") as f:
+        json.dump(existing[-100:], f, indent=2)  # keep last 100 entries
+
+# =====================================================
 # 💾 Offline Vector Search (NumPy-based)
 # =====================================================
 def load_local_vector_store():
@@ -98,7 +123,6 @@ except Exception as e:
     LOCAL_EMBEDDER = None
     print(f"⚠️ Could not load local embedding model: {e}")
 
-
 def embed_query_offline(query: str) -> np.ndarray:
     """
     Generate a true semantic embedding using a local model.
@@ -116,11 +140,9 @@ def embed_query_offline(query: str) -> np.ndarray:
     emb = LOCAL_EMBEDDER.encode(query, normalize_embeddings=True)
     return np.array(emb, dtype=np.float32)
 
-
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     """Compute cosine similarity between two vectors."""
     return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
-
 
 def find_table_offline(query: str, top_k: int = 3) -> list[dict]:
     """Offline semantic search using precomputed embeddings in vector_store.json."""
@@ -175,17 +197,28 @@ def find_table_online(query: str, top_k: int = 3) -> list[dict]:
     return scored[:top_k]
 
 # =====================================================
-# 🧠 Unified Entry Point
+# 🧠 Unified Entry Point (Auto-fallback)
 # =====================================================
 def find_table_for_query(query: str, top_k: int = 3) -> list[dict]:
     """
-    Unified table resolver.
-    Uses OpenAI embeddings if online, otherwise local offline search.
+    Unified table resolver with automatic online/offline switching.
+    Tries OpenAI first; falls back to offline NumPy RAG on failure.
     """
+    global ONLINE_MODE
     if ONLINE_MODE:
-        return find_table_online(query, top_k)
+        try:
+            results = find_table_online(query, top_k)
+            log_rag_event("query_success", f"Online RAG resolved: {query}")
+            return results
+        except Exception as e:
+            log_rag_event("query_fail", f"Online RAG failed: {type(e).__name__}")
+            print("⚠️ Online RAG failed — switching to offline mode.")
+            ONLINE_MODE = False
+            return find_table_offline(query, top_k)
     else:
-        return find_table_offline(query, top_k)
+        results = find_table_offline(query, top_k)
+        log_rag_event("query_offline", f"Offline RAG handled: {query}")
+        return results
 
 # =====================================================
 # 🧪 CLI Demo

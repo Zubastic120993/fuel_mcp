@@ -24,3 +24,4 @@ fuel_mcp/tables/*.json
 !fuel_mcp/tables/official/*.csv
 .env
 fuel_mcp/data/conversion_history.json
+fuel_mcp/logs/
