@@ -1,6 +1,6 @@
 {
   "ASTM_Table11_API_to_LongTons.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 11",
@@ -8,10 +8,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table11_API_to_LongTons_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table11_API_to_LongTons_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table12_RelativeDensity_to_LongTons.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 12",
@@ -19,10 +20,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table12_RelativeDensity_to_LongTons_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table12_RelativeDensity_to_LongTons_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to equivalent long tons (imperial correlation)."
   },
   "ASTM_Table14_RelativeDensity_to_CubicMeters.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 14",
@@ -30,10 +32,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table14_RelativeDensity_to_CubicMeters_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table14_RelativeDensity_to_CubicMeters_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table15_API_to_MetricTonnes.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 15",
@@ -41,10 +44,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table15_API_to_MetricTonnes_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table15_API_to_MetricTonnes_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table15_Reverse_MetricTonnes_to_API.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 15",
@@ -52,10 +56,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table15_Reverse_MetricTonnes_to_API_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table15_Reverse_MetricTonnes_to_API_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table16B_RelativeDensity_to_USGallons_and_Barrels_per_LongTon_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 16B",
@@ -63,10 +68,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table16B_RelativeDensity_to_USGallons_and_Barrels_per_LongTon_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table16B_RelativeDensity_to_USGallons_and_Barrels_per_LongTon_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. Converts density at 15\u00b0C (kg/m\u00b3) to tons per cubic meter following ASTM D1250 correlations for marine fuel."
   },
   "ASTM_Table16_Density15C_to_MetricTonnes.csv": {
-    "purpose": "Convert density at 15 °C to equivalent mass or volume.",
+    "purpose": "Convert density at 15 \u00b0C to equivalent mass or volume.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 16",
@@ -74,10 +80,11 @@
     "category": "density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table16_Density15C_to_MetricTonnes_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table16_Density15C_to_MetricTonnes_norm.csv",
+    "description": "General-purpose conversion of density at 15\u00b0C (kg/m\u00b3) to metric tonnes per cubic meter (ISO 91-1 reference)."
   },
   "ASTM_Table16_Reverse_MetricTonnes_to_Density15C.csv": {
-    "purpose": "Convert density at 15 °C to equivalent mass or volume.",
+    "purpose": "Convert density at 15 \u00b0C to equivalent mass or volume.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 16",
@@ -85,10 +92,11 @@
     "category": "density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table16_Reverse_MetricTonnes_to_Density15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table16_Reverse_MetricTonnes_to_Density15C_norm.csv",
+    "description": "Convert density at 15 \u00b0C to equivalent mass or volume. Converts density at 15\u00b0C (kg/m\u00b3) to tons per cubic meter following ASTM D1250 correlations for marine fuel."
   },
   "ASTM_Table17_RelativeDensity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 17",
@@ -96,10 +104,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table17_RelativeDensity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table17_RelativeDensity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table18A_APIGravity60F_to_CubicMeters_per_ShortTon_and_LongTon_15C.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 18A",
@@ -107,10 +116,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table18A_APIGravity60F_to_CubicMeters_per_ShortTon_and_LongTon_15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table18A_APIGravity60F_to_CubicMeters_per_ShortTon_and_LongTon_15C_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table1_APIGravity60F_to_RelativeDensity60F_and_Density15C.csv": {
-    "purpose": "Convert API Gravity 60 °F to Relative Density 60 °F and Density 15 °C.",
+    "purpose": "Convert API Gravity 60 \u00b0F to Relative Density 60 \u00b0F and Density 15 \u00b0C.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 1",
@@ -118,10 +128,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table1_APIGravity60F_to_RelativeDensity60F_and_Density15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table1_APIGravity60F_to_RelativeDensity60F_and_Density15C_norm.csv",
+    "description": "Convert API Gravity 60 \u00b0F to Relative Density 60 \u00b0F and Density 15 \u00b0C. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table1_API_to_CubicMeters.csv": {
-    "purpose": "Convert API Gravity 60 °F to cubic meters per barrel at 60 °F to 15 °C.",
+    "purpose": "Convert API Gravity 60 \u00b0F to cubic meters per barrel at 60 \u00b0F to 15 \u00b0C.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 1",
@@ -129,10 +140,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table1_API_to_CubicMeters_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table1_API_to_CubicMeters_norm.csv",
+    "description": "Convert API Gravity 60 \u00b0F to cubic meters per barrel at 60 \u00b0F to 15 \u00b0C. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table25_RelativeDensity_to_Litres_per_USGallon_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 25",
@@ -140,10 +152,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table25_RelativeDensity_to_Litres_per_USGallon_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table25_RelativeDensity_to_Litres_per_USGallon_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table26_Density15C_to_CubicMeters_per_USBarrel_60F_15C.csv": {
-    "purpose": "Convert density at 15 °C to equivalent mass or volume.",
+    "purpose": "Convert density at 15 \u00b0C to equivalent mass or volume.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 26",
@@ -151,10 +164,11 @@
     "category": "density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table26_Density15C_to_CubicMeters_per_USBarrel_60F_15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table26_Density15C_to_CubicMeters_per_USBarrel_60F_15C_norm.csv",
+    "description": "Convert density at 15 \u00b0C to equivalent mass or volume. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table27_Density15C_to_USBarrels_per_CubicMeter_15C.csv": {
-    "purpose": "Convert density at 15 °C to equivalent mass or volume.",
+    "purpose": "Convert density at 15 \u00b0C to equivalent mass or volume.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 27",
@@ -162,10 +176,11 @@
     "category": "density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table27_Density15C_to_USBarrels_per_CubicMeter_15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table27_Density15C_to_USBarrels_per_CubicMeter_15C_norm.csv",
+    "description": "Convert density at 15 \u00b0C to equivalent mass or volume. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table2_API_to_Liters.csv": {
-    "purpose": "Convert API gravity at 60°F to liters or cubic meters.",
+    "purpose": "Convert API gravity at 60\u00b0F to liters or cubic meters.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 2",
@@ -173,10 +188,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table2_API_to_Liters_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table2_API_to_Liters_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to liters or cubic meters. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table2_RelativeDensity60F_to_APIGravity60F_and_Density15C.csv": {
-    "purpose": "Convert Relative Density 60/60 °F to API Gravity 60 °F and Density 15 °C.",
+    "purpose": "Convert Relative Density 60/60 \u00b0F to API Gravity 60 \u00b0F and Density 15 \u00b0C.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 2",
@@ -184,10 +200,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table2_RelativeDensity60F_to_APIGravity60F_and_Density15C_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table2_RelativeDensity60F_to_APIGravity60F_and_Density15C_norm.csv",
+    "description": "Convert Relative Density 60/60 \u00b0F to API Gravity 60 \u00b0F and Density 15 \u00b0C. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table35_RelativeDensity60F_to_USGallons_and_Barrels_per_ShortTon_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 35",
@@ -195,10 +212,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table35_RelativeDensity60F_to_USGallons_and_Barrels_per_ShortTon_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table35_RelativeDensity60F_to_USGallons_and_Barrels_per_ShortTon_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. Converts density at 15\u00b0C (kg/m\u00b3) to tons per cubic meter following ASTM D1250 correlations for marine fuel."
   },
   "ASTM_Table36_RelativeDensity60F_to_ShortTons_per_1000USGallons_and_per_Barrel_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 36",
@@ -206,10 +224,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table36_RelativeDensity60F_to_ShortTons_per_1000USGallons_and_per_Barrel_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table36_RelativeDensity60F_to_ShortTons_per_1000USGallons_and_per_Barrel_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. Converts density at 15\u00b0C (kg/m\u00b3) to tons per cubic meter following ASTM D1250 correlations for marine fuel."
   },
   "ASTM_Table3_Density15C_to_RelativeDensity60F_and_APIGravity60F.csv": {
-    "purpose": "Convert density at 15 °C to equivalent mass or volume.",
+    "purpose": "Convert density at 15 \u00b0C to equivalent mass or volume.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 3",
@@ -217,23 +236,25 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table3_Density15C_to_RelativeDensity60F_and_APIGravity60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table3_Density15C_to_RelativeDensity60F_and_APIGravity60F_norm.csv",
+    "description": "Convert density at 15 \u00b0C to equivalent mass or volume. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table53B_Density15C_to_CubicMeters_per_MetricTon.csv": {
-    "purpose": "Density 15 °C–based conversion",
+    "purpose": "Density 15 \u00b0C\u2013based conversion",
     "primary_column": "Density_15C_kg_per_m3",
     "outputs": [
       "Cubic_Meters_per_Tonne"
     ],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 53B",
     "ISO_equivalent": "ISO 91-1 Table 53B",
-    "category": "density ↔ volume",
-    "conversion_path": "ρ15 → m³/t → volume",
+    "category": "density \u2194 volume",
+    "conversion_path": "\u03c115 \u2192 m\u00b3/t \u2192 volume",
     "notes": "Common for cargo tank calculations and bunker reports.",
-    "normalized_path": "official/normalized/ASTM_Table53B_Density15C_to_CubicMeters_per_MetricTon_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table53B_Density15C_to_CubicMeters_per_MetricTon_norm.csv",
+    "description": "Convert density at 15\u00b0C (kg/m\u00b3) to cubic meters per metric ton \u2014 used for marine fuel mass-to-volume conversion (ASTM D1250 Table 53B)."
   },
   "ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter.csv": {
-    "purpose": "Density 15 °C–based conversion",
+    "purpose": "Density 15 \u00b0C\u2013based conversion",
     "primary_column": "Density_15C_kg_per_m3",
     "outputs": [
       "Short_Tons_per_CubicMeter",
@@ -241,13 +262,14 @@
     ],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 54B",
     "ISO_equivalent": "ISO 91-1 Table 54B",
-    "category": "density ↔ mass",
-    "conversion_path": "ρ15 → tons/m³ → mass",
+    "category": "density \u2194 mass",
+    "conversion_path": "\u03c115 \u2192 tons/m\u00b3 \u2192 mass",
     "notes": "Used in bunker calculations; basis for VCF correction in Table 54D.",
-    "normalized_path": "official/normalized/ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table54B_Density15C_to_Short_and_Long_Tons_per_CubicMeter_norm.csv",
+    "description": "Convert density at 15\u00b0C (kg/m\u00b3) to short and long tons per cubic meter \u2014 ASTM D1250 Table 54B correlation for petroleum mass conversions."
   },
   "ASTM_Table56_Density15C_to_VacuoAirFactor.csv": {
-    "purpose": "Air/vacuo correction based on density 15 °C.",
+    "purpose": "Air/vacuo correction based on density 15 \u00b0C.",
     "primary_column": "Density_15C_kg_per_L",
     "outputs": [
       "Correction_Factor"
@@ -255,12 +277,13 @@
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 56",
     "ISO_equivalent": "ISO 91-1 Table 56",
     "category": "air correction",
-    "conversion_path": "ρ15 → factor air↔vacuo",
+    "conversion_path": "\u03c115 \u2192 factor air\u2194vacuo",
     "notes": "Used when converting observed density to/from vacuo basis.",
-    "normalized_path": "official/normalized/ASTM_Table56_Density15C_to_VacuoAirFactor_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table56_Density15C_to_VacuoAirFactor_norm.csv",
+    "description": "Air/vacuo correction factor table \u2014 converts fuel density from vacuum to air conditions at 15\u00b0C (ASTM D1250 Table 56)."
   },
   "ASTM_Table57_Density15C_to_AirVacuoFactor.csv": {
-    "purpose": "Air/vacuo correction based on density 15 °C.",
+    "purpose": "Air/vacuo correction based on density 15 \u00b0C.",
     "primary_column": "Density_15C_kg_per_L",
     "outputs": [
       "Correction_Factor"
@@ -268,12 +291,13 @@
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 57",
     "ISO_equivalent": "ISO 91-1 Table 57",
     "category": "air correction",
-    "conversion_path": "ρ15 → factor air↔vacuo",
+    "conversion_path": "\u03c115 \u2192 factor air\u2194vacuo",
     "notes": "Used when converting observed density to/from vacuo basis.",
-    "normalized_path": "official/normalized/ASTM_Table57_Density15C_to_AirVacuoFactor_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table57_Density15C_to_AirVacuoFactor_norm.csv",
+    "description": "Reverse correction \u2014 converts density from air to vacuum conditions at 15\u00b0C per ASTM D1250 Table 57."
   },
   "ASTM_Table6_APIGravity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F.csv": {
-    "purpose": "Convert API Gravity 60 °F to pounds per US gallon and vice versa.",
+    "purpose": "Convert API Gravity 60 \u00b0F to pounds per US gallon and vice versa.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 6",
@@ -281,10 +305,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table6_APIGravity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table6_APIGravity60F_to_Pounds_per_USGallon_and_USGallons_per_Pound_60F_norm.csv",
+    "description": "Convert API Gravity 60 \u00b0F to pounds per US gallon and vice versa. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table7_RelativeDensity_to_CubicMeters_per_Barrel_60F.csv": {
-    "purpose": "Convert relative density 60/60°F to related volumetric or mass properties.",
+    "purpose": "Convert relative density 60/60\u00b0F to related volumetric or mass properties.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 7",
@@ -292,10 +317,11 @@
     "category": "relative density correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table7_RelativeDensity_to_CubicMeters_per_Barrel_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table7_RelativeDensity_to_CubicMeters_per_Barrel_60F_norm.csv",
+    "description": "Convert relative density 60/60\u00b0F to related volumetric or mass properties. General ASTM/ISO table used in petroleum product density-volume conversion."
   },
   "ASTM_Table8_API_to_LongTons.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 8",
@@ -303,10 +329,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table8_API_to_LongTons_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table8_API_to_LongTons_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table9_APIGravity60F_to_USGallons_and_Barrels_per_ShortTon_60F.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 9",
@@ -314,10 +341,11 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table9_APIGravity60F_to_USGallons_and_Barrels_per_ShortTon_60F_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table9_APIGravity60F_to_USGallons_and_Barrels_per_ShortTon_60F_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   },
   "ASTM_Table9_API_to_ShortTons.csv": {
-    "purpose": "Convert API gravity at 60°F to corresponding tons per volume unit.",
+    "purpose": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit.",
     "primary_column": "",
     "outputs": [],
     "ASTM_reference": "ASTM D1250-80 Vol XI Table 9",
@@ -325,6 +353,7 @@
     "category": "API correlation",
     "conversion_path": "",
     "notes": "",
-    "normalized_path": "official/normalized/ASTM_Table9_API_to_ShortTons_norm.csv"
+    "normalized_path": "official/normalized/ASTM_Table9_API_to_ShortTons_norm.csv",
+    "description": "Convert API gravity at 60\u00b0F to corresponding tons per volume unit. Relates API gravity at 60\u00b0F to equivalent mass or volume per unit in ASTM standard."
   }
 }

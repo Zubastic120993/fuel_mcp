@@ -1,19 +1,8 @@
-
 """
 vcf_official_full.py
 =====================
 Exact ISO 91-1 / ASTM D1250 / API 2540 computational method for
 Tables 54A–54D (metric, °C system).
-
-Implements:
-    a = (K0 + K1 * ρ15) / ρ15²
-    b = −a * ΔT * (1 + 0.8 * a * ΔT)
-    VCF = exp(b)
-
-Special case (770 ≤ ρ < 778):
-    c = −0.00336312 + 2680.32 / ρ15²
-    d = −c * ΔT * (1 + 0.8 * c * ΔT)
-    VCF = exp(d)
 """
 
 import math
@@ -21,42 +10,50 @@ import json
 from pathlib import Path
 from .unit_converter import convert
 
+
 # =====================================================
-# 🔹  OFFICIAL COEFFICIENTS (ISO 91-1 Annex B)
+# 🔹 OFFICIAL COEFFICIENTS (ISO 91-1:2019 Annex B)
 # =====================================================
 VCF_TABLES = {
-    "54A": {"K0": 613.9723, "K1": 0.0, "range": (610.5, 1075.0)},          # Distillates
+    "54A": {"K0": 613.9723, "K1": 0.0, "range": (610.5, 770.0), "label": "Light distillates (gasoline / naphtha)"},
     "54B": [
-        {"range": (653.0, 770.0), "K0": 346.4228, "K1": 0.4388},           # Gasoline
-        {"range": (770.5, 787.5), "A": -0.00336312, "B": 2680.3206},       # Transition
-        {"range": (788.0, 838.5), "K0": 594.5418, "K1": 0.0},              # Jet fuels
-        {"range": (839.0, 1075.0), "K0": 186.9696, "K1": 0.48618},         # Residual fuels
+        {"range": (770.5, 787.5), "A": -0.00336312, "B": 2680.3206, "label": "Transition band"},
+        {"range": (787.5, 838.5), "K0": 594.5418, "K1": 0.0, "label": "Jet / Kerosene"},
+        {"range": (838.5, 1075.0), "K0": 186.9696, "K1": 0.48618, "label": "Residual / Marine fuels"},
     ],
-    "54D": {"K0": 0.0, "K1": 0.6278, "range": (800.0, 1164.0)},            # Lubricating oils
+    "54D": {"K0": 0.0, "K1": 0.6278, "range": (1075.0, 1164.0), "label": "Lubricating oils"},
 }
 
 
 # =====================================================
-# 🔹  CORE FUNCTION
+# 🔹 CORE FUNCTION
 # =====================================================
 def vcf_iso_official(rho15: float, tempC: float) -> dict:
     """
     Compute Volume Correction Factor (VCF) for a given density and temperature.
-    Reproduces official printed ISO 91-1 / ASTM D1250 tables.
-    :param rho15: density at 15 °C [kg/m³]
-    :param tempC: observed temperature [°C]
-    :return: dict with VCF and calculation details
+    Matches official ISO 91-1 / ASTM D1250 printed tables.
+    
+    Args:
+        rho15: Density at 15°C in kg/m³
+        tempC: Observed temperature in °C
+        
+    Returns:
+        Dictionary with VCF calculation details
     """
-
     dT = tempC - 15.0
 
     # ---- Determine applicable table ----
-    if 800 <= rho15 <= 1164:
-        table = "54D"
-    elif 653 <= rho15 <= 1075:
-        table = "54B"
-    else:
+    if 610.5 <= rho15 <= 770.0:
         table = "54A"
+    elif 770.0 < rho15 <= 1075.0:
+        table = "54B"
+    elif 1075.0 < rho15 <= 1164.0:
+        table = "54D"
+    else:
+        raise ValueError(
+            f"Density {rho15} kg/m³ outside ASTM range (610.5–1164.0 kg/m³). "
+            f"Valid ranges: 54A (610.5–770.0), 54B (770.0–1075.0), 54D (1075.0–1164.0)"
+        )
 
     # ---- Perform calculation ----
     if table == "54A":
@@ -64,23 +61,29 @@ def vcf_iso_official(rho15: float, tempC: float) -> dict:
         a = (k0 + k1 * rho15) / (rho15 ** 2)
         b = -a * dT * (1 + 0.8 * a * dT)
         vcf = math.exp(b)
+        label = VCF_TABLES["54A"]["label"]
 
     elif table == "54D":
         k0, k1 = VCF_TABLES["54D"]["K0"], VCF_TABLES["54D"]["K1"]
         a = (k0 + k1 * rho15) / (rho15 ** 2)
         b = -a * dT * (1 + 0.8 * a * dT)
         vcf = math.exp(b)
+        label = VCF_TABLES["54D"]["label"]
 
     elif table == "54B":
-        # find sub-range
         selected = None
         for seg in VCF_TABLES["54B"]:
             lo, hi = seg["range"]
-            if lo <= rho15 < hi:
+            if lo < rho15 <= hi:
                 selected = seg
                 break
-        if selected is None:
-            raise ValueError(f"Density {rho15} kg/m³ not in any 54B range")
+        if not selected:
+            raise ValueError(
+                f"Density {rho15} kg/m³ not in any 54B sub-range. "
+                f"Valid sub-ranges: (770.5–787.5), (787.5–838.5), (838.5–1075.0)"
+            )
+
+        label = selected.get("label", "Unknown 54B sub-range")
 
         if "K0" in selected:
             k0, k1 = selected["K0"], selected["K1"]
@@ -88,43 +91,45 @@ def vcf_iso_official(rho15: float, tempC: float) -> dict:
             b = -a * dT * (1 + 0.8 * a * dT)
             vcf = math.exp(b)
         else:
-            # transition band (770 – 778 kg/m³)
             A, B = selected["A"], selected["B"]
-            c = A + B / (rho15 ** 2)
-            d = -c * dT * (1 + 0.8 * c * dT)
-            vcf = math.exp(d)
-            a, b = c, d  # for reference output
-
-    else:
-        raise ValueError("Unsupported table")
+            a = A + B / (rho15 ** 2)
+            b = -a * dT * (1 + 0.8 * a * dT)
+            vcf = math.exp(b)
 
     return {
-        "table": table,
+        "table": f"{table} ({label})",
         "rho15": round(rho15, 3),
         "tempC": round(tempC, 2),
         "deltaT": round(dT, 2),
-        "a_or_c": round(a, 9),
-        "b_or_d": round(b, 8),
+        "coefficient_a": round(a, 9),
+        "exponent_b": round(b, 8),
         "VCF": round(vcf, 6),
     }
 
 
 # =====================================================
-# 🔹  VOLUME-CORRECTION WRAPPER
+# 🔹 VOLUME-CORRECTION WRAPPER
 # =====================================================
-def correct_volume(fuel: str, observed_m3: float, tempC: float,
-                   db_path: str | None = None) -> dict:
+def correct_volume(fuel: str, observed_m3: float, tempC: float, db_path: str | None = None) -> dict:
     """
-    Correct observed fuel volume to 15 °C using the official algorithm.
-    Automatically loads density database from package tables.
+    Correct observed volume to standard conditions (15°C).
+    
+    Args:
+        fuel: Fuel type identifier
+        observed_m3: Observed volume in m³
+        tempC: Observed temperature in °C
+        db_path: Optional path to fuel database JSON
+        
+    Returns:
+        Dictionary with correction details and corrected volume
     """
-    # 🔹 If path not given, use the internal MCP data file
     if db_path is None:
         db_path = Path(__file__).parent / "tables" / "fuel_data.json"
-
-    # Read densities at 15 °C
     with open(db_path) as f:
         fuels = json.load(f)
+
+    if fuel not in fuels:
+        raise ValueError(f"Fuel '{fuel}' not found in database. Available fuels: {list(fuels.keys())}")
 
     rho15 = fuels[fuel]["density_15C"]
     result = vcf_iso_official(rho15, tempC)
@@ -133,41 +138,45 @@ def correct_volume(fuel: str, observed_m3: float, tempC: float,
     result["V15_m3"] = round(observed_m3 * result["VCF"], 3)
     return result
 
-# =====================================================
-# 🔹  MASS → VOLUME CALCULATION
-# =====================================================
-def correct_mass(fuel: str, mass_ton: float, tempC: float,
-                 db_path: str | None = None) -> dict:
-    """
-    Given mass (t), fuel type, and observed temperature (°C),
-    compute:
-      - Volume at observed temperature (m³)
-      - Volume at 15 °C (m³, reference)
-    """
-    from pathlib import Path
 
+# =====================================================
+# 🔹 MASS → VOLUME CALCULATION
+# =====================================================
+def correct_mass(fuel: str, mass_ton: float, tempC: float, db_path: str | None = None) -> dict:
+    """
+    Calculate volume from mass at observed temperature and correct to 15°C.
+    
+    Args:
+        fuel: Fuel type identifier
+        mass_ton: Mass in metric tons
+        tempC: Observed temperature in °C
+        db_path: Optional path to fuel database JSON
+        
+    Returns:
+        Dictionary with correction details and volumes
+    """
     if db_path is None:
         db_path = Path(__file__).parent / "tables" / "fuel_data.json"
-
-    # Load density data
     with open(db_path) as f:
         fuels = json.load(f)
 
-    rho15 = fuels[fuel]["density_15C"]  # kg/m³ @15°C
-    rho15_ton_m3 = rho15 / 1000          # ton/m³
+    if fuel not in fuels:
+        raise ValueError(f"Fuel '{fuel}' not found in database. Available fuels: {list(fuels.keys())}")
 
-    # 1️⃣ Get the correction factor
+    rho15 = fuels[fuel]["density_15C"]
+    rho15_ton_m3 = rho15 / 1000
     result = vcf_iso_official(rho15, tempC)
     vcf = result["VCF"]
 
-    # 2️⃣ Density at observed temperature
-    rhoT_ton_m3 = rho15_ton_m3 * vcf
-
-    # 3️⃣ Compute volumes
+    # Calculate density at observed temperature
+    rhoT_ton_m3 = rho15_ton_m3 / vcf
+    
+    # Calculate observed volume from mass
     volume_obs_m3 = mass_ton / rhoT_ton_m3
+    
+    # Calculate volume at 15°C
     volume_15_m3 = volume_obs_m3 * vcf
 
-    # 4️⃣ Return all results
     result.update({
         "fuel": fuel,
         "mass_ton": mass_ton,
@@ -177,67 +186,52 @@ def correct_mass(fuel: str, mass_ton: float, tempC: float,
     })
     return result
 
+
 # =====================================================
-# 🔹  UNIVERSAL AUTO-DETECT FUNCTION
+# 🔹 UNIVERSAL AUTO-DETECT FUNCTION
 # =====================================================
-# =====================================================
-# 🔹  UNIVERSAL AUTO-DETECT FUNCTION (extended)
-# =====================================================
-def auto_correct(
-    fuel: str,
-    volume_m3: float | None = None,
-    mass_ton: float | None = None,
-    tempC: float | None = None,
-    db_path: str | None = None
-) -> dict:
+def auto_correct(fuel: str, volume_m3=None, mass_ton=None, tempC=None, db_path=None) -> dict:
     """
-    Automatically detects whether to perform:
-      - Volume → Mass (if volume given)
-      - Mass → Volume (if mass given)
-    Then enriches results with equivalent units:
-      - m³, barrels, litres, US gallons
+    Automatically detect input type and perform appropriate correction.
+    
+    Args:
+        fuel: Fuel type identifier
+        volume_m3: Observed volume in m³ (provide this OR mass_ton)
+        mass_ton: Mass in metric tons (provide this OR volume_m3)
+        tempC: Observed temperature in °C (required)
+        db_path: Optional path to fuel database JSON
+        
+    Returns:
+        Dictionary with correction details and equivalent volumes
     """
     if tempC is None:
         raise ValueError("Temperature (°C) must be provided.")
-
-    # ───────────────────────────────────────────────
-    # Select calculation direction
-    # ───────────────────────────────────────────────
     if volume_m3 is not None and mass_ton is None:
         result = correct_volume(fuel, volume_m3, tempC, db_path)
-        result["mode"] = "volume_to_mass"
-
-        # add mass (t) = V15 × ρ15 / 1000
+        result["mode"] = "volume_input"
         rho15 = result["rho15"] / 1000
         result["mass_ton"] = round(result["V15_m3"] * rho15, 3)
         base_volume = result["V15_m3"]
-
     elif mass_ton is not None and volume_m3 is None:
         result = correct_mass(fuel, mass_ton, tempC, db_path)
-        result["mode"] = "mass_to_volume"
+        result["mode"] = "mass_input"
         base_volume = result["V15_m3"]
-
     else:
         raise ValueError("Provide either volume_m3 or mass_ton, not both.")
 
-    # ───────────────────────────────────────────────
-    # Add equivalent units using ASTM conversions
-    # ───────────────────────────────────────────────
     result["equivalents"] = {
         "m3_15C": round(base_volume, 3),
         "barrels_15C": round(convert(base_volume, "cum", "barrel"), 3),
         "litres_15C": round(convert(base_volume, "cum", "litre"), 1),
-        "usg_15C": round(convert(base_volume, "cum", "usg"), 1)
+        "usg_15C": round(convert(base_volume, "cum", "usg"), 1),
     }
-
     return result
 
 
 # =====================================================
-# 🔹  DEMONSTRATION
+# 🔹 DEMONSTRATION
 # =====================================================
 if __name__ == "__main__":
-    # Example density database
     FUEL_DATA = {
         "diesel": {"density_15C": 850.0},
         "hfo": {"density_15C": 980.0},
@@ -245,13 +239,32 @@ if __name__ == "__main__":
         "lube": {"density_15C": 910.0},
         "gasoline": {"density_15C": 740.0},
     }
-    with open("fuel_data.json", "w") as f:
+    
+    # Create tables directory and write fuel data
+    tables_dir = Path(__file__).parent / "tables"
+    tables_dir.mkdir(exist_ok=True)
+    db_path = tables_dir / "fuel_data.json"
+    
+    with open(db_path, "w") as f:
         json.dump(FUEL_DATA, f, indent=2)
 
-    # Example test run
     print("ISO 91-1 / ASTM D1250 VCF CALCULATOR\n")
+    print(f"{'FUEL':<10} | {'TABLE':<40} | {'ρ₁₅ (kg/m³)':<12} | {'ΔT (°C)':<8} | {'VCF':<8} | {'V15 (m³)':<10}")
+    print("-" * 110)
+    
     for fuel in FUEL_DATA:
-        res = correct_volume(fuel, 1000, 56)
-        print(f"{res['fuel'].upper():10s} | Table {res['table']} | "
-              f"ρ₁₅={res['rho15']} kg/m³ | ΔT={res['deltaT']}°C | "
-              f"VCF={res['VCF']} | V15={res['V15_m3']} m³")
+        res = correct_volume(fuel, 1000, 56, db_path=str(db_path))
+        print(f"{res['fuel'].upper():<10} | {res['table']:<40} | "
+              f"{res['rho15']:<12} | {res['deltaT']:<8} | "
+              f"{res['VCF']:<8} | {res['V15_m3']:<10}")
+    
+    print("\n" + "="*110)
+    print("\nExample with mass input:")
+    res_mass = correct_mass("diesel", 100, 30, db_path=str(db_path))
+    print(f"Fuel: {res_mass['fuel']}")
+    print(f"Mass: {res_mass['mass_ton']} tons")
+    print(f"Temperature: {res_mass['tempC']}°C")
+    print(f"Density at T: {res_mass['rhoT_ton_m3']} ton/m³")
+    print(f"Observed volume: {res_mass['volume_obs_m3']} m³")
+    print(f"Volume at 15°C: {res_mass['V15_m3']} m³")
+    print(f"VCF: {res_mass['VCF']}")
