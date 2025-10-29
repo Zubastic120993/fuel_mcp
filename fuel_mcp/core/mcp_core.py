@@ -13,8 +13,13 @@ import re
 import logging
 from datetime import datetime, UTC
 from pathlib import Path
-from dotenv import load_dotenv
 from logging.handlers import RotatingFileHandler
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - simple fallback for offline envs
+    def load_dotenv(*_args, **_kwargs):  # type: ignore[override]
+        return False
 
 from fuel_mcp.core.conversion_dispatcher import convert
 from fuel_mcp.core.rag_bridge import find_table_for_query

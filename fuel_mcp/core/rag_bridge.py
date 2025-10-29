@@ -1,18 +1,49 @@
 """
 Bridge between MCP Core and the RAG semantic layer.
 Lets MCP auto-discover the right ASTM/ISO table by meaning.
+
+This module usually depends on external packages like ``numpy`` and
+``sentence-transformers``.  Those libraries are not available in the execution
+environment used for the kata, so the code now loads them lazily and falls back
+to lightweight Python implementations when necessary.
 """
 
+from __future__ import annotations
+
 from pathlib import Path
-from openai import OpenAI
-from dotenv import load_dotenv
+
+try:  # pragma: no cover - optional dependency
+    from dotenv import load_dotenv
+except Exception:  # pragma: no cover - simple fallback
+    def load_dotenv(*_args, **_kwargs):  # type: ignore[override]
+        """Fallback no-op used when python-dotenv is unavailable."""
+
+        return False
 import json
-import numpy as np
+import math
 import os
-import requests
+try:  # pragma: no cover - optional dependency
+    import requests
+except Exception:  # pragma: no cover - fallback to offline mode
+    requests = None  # type: ignore[assignment]
 import logging
 from datetime import datetime, UTC
-from sentence_transformers import SentenceTransformer
+from typing import Iterable, Sequence
+
+try:  # pragma: no cover - optional dependency
+    from openai import OpenAI
+except Exception:  # pragma: no cover - handled via offline fallback
+    OpenAI = None  # type: ignore[assignment]
+
+try:  # pragma: no cover - optional dependency
+    import numpy as np
+except Exception:  # pragma: no cover - handled via helpers below
+    np = None  # type: ignore[assignment]
+
+try:  # pragma: no cover - optional dependency
+    from sentence_transformers import SentenceTransformer
+except Exception:  # pragma: no cover - handled via helpers below
+    SentenceTransformer = None  # type: ignore[assignment]
 
 # =====================================================
 # 🌐 Environment & Constants
@@ -33,10 +64,13 @@ def is_internet_available(url="https://api.openai.com/v1/embeddings", timeout=3)
     Quick check to confirm online API accessibility.
     Returns False if no internet or invalid API key.
     """
+    if not requests:
+        return False
+
     try:
         if not OPENAI_API_KEY:
             return False
-        response = requests.get(
+        response = requests.get(  # type: ignore[call-arg]
             url,
             headers={"Authorization": f"Bearer {OPENAI_API_KEY}"},
             timeout=timeout,
@@ -47,11 +81,11 @@ def is_internet_available(url="https://api.openai.com/v1/embeddings", timeout=3)
         return False
 
 
-ONLINE_MODE = is_internet_available()
+ONLINE_MODE = bool(OpenAI) and is_internet_available()
 
 if ONLINE_MODE:
     print("🌐 Online mode detected — using OpenAI embeddings.")
-    client = OpenAI(api_key=OPENAI_API_KEY)
+    client = OpenAI(api_key=OPENAI_API_KEY)  # type: ignore[operator]
 else:
     print("🛰️ Offline mode active — using local vector_store.json.")
     client = None
@@ -113,17 +147,48 @@ def load_local_vector_store():
 # =====================================================
 # 🧠 Local Semantic Embedder
 # =====================================================
-try:
-    LOCAL_EMBEDDER = SentenceTransformer(
-        "nomic-ai/nomic-embed-text-v1.5",
-        trust_remote_code=True,  # ✅ Required for Nomic models
-    )
-    print("✅ Loaded local semantic model: nomic-ai/nomic-embed-text-v1.5")
-except Exception as e:
+if SentenceTransformer is not None:  # pragma: no branch - simple helper guard
+    try:
+        LOCAL_EMBEDDER = SentenceTransformer(
+            "nomic-ai/nomic-embed-text-v1.5",
+            trust_remote_code=True,  # ✅ Required for Nomic models
+        )
+        print("✅ Loaded local semantic model: nomic-ai/nomic-embed-text-v1.5")
+    except Exception as e:  # pragma: no cover - depends on external assets
+        LOCAL_EMBEDDER = None
+        print(f"⚠️ Could not load local embedding model: {e}")
+else:
     LOCAL_EMBEDDER = None
-    print(f"⚠️ Could not load local embedding model: {e}")
+    print("⚠️ sentence-transformers not available — using fallback embedding logic.")
 
-def embed_query_offline(query: str) -> np.ndarray:
+
+def _to_vector(seq: Sequence[float] | Iterable[float]) -> list[float]:
+    """Convert any iterable of numbers to a list of floats."""
+
+    return [float(x) for x in seq]
+
+
+def _vector_norm(vec: Sequence[float]) -> float:
+    """Compute the Euclidean norm with an optional numpy shortcut."""
+
+    if np is not None:  # pragma: no cover - trivial passthrough
+        return float(np.linalg.norm(vec))  # type: ignore[return-value]
+    return math.sqrt(sum(float(x) ** 2 for x in vec))
+
+
+def _vector_dot(a: Sequence[float], b: Sequence[float]) -> float:
+    if np is not None:  # pragma: no cover - trivial passthrough
+        return float(np.dot(a, b))  # type: ignore[return-value]
+    return sum(float(x) * float(y) for x, y in zip(a, b))
+
+
+def _normalise(vec: Sequence[float]) -> list[float]:
+    norm = _vector_norm(vec)
+    if norm == 0:
+        return [0.0 for _ in vec]
+    return [float(x) / norm for x in vec]
+
+def embed_query_offline(query: str) -> list[float]:
     """
     Generate a true semantic embedding using a local model.
     Returns 1536-D vector comparable to OpenAI embeddings.
@@ -131,18 +196,29 @@ def embed_query_offline(query: str) -> np.ndarray:
     if LOCAL_EMBEDDER is None:
         # Fallback deterministic pseudo-embedding (if model missing)
         print("⚠️ Using fallback pseudo-embedding.")
-        vector = np.zeros(1536)
+        vector = [0.0] * 1536
         for i, c in enumerate(query.lower()):
-            vector[i % 1536] += ord(c)
-        norm = np.linalg.norm(vector)
-        return vector / norm if norm != 0 else vector
+            vector[i % 1536] += float(ord(c))
+        return _normalise(vector)
 
     emb = LOCAL_EMBEDDER.encode(query, normalize_embeddings=True)
-    return np.array(emb, dtype=np.float32)
+    if np is not None and hasattr(emb, "astype"):
+        return _to_vector(np.array(emb, dtype=np.float32))
+    if isinstance(emb, (list, tuple)):
+        return _normalise(_to_vector(emb))
+    if hasattr(emb, "tolist"):
+        return _normalise([float(x) for x in emb.tolist()])
+    return _normalise(_to_vector(emb))
 
-def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
+
+def cosine_similarity(a: Sequence[float], b: Sequence[float]) -> float:
     """Compute cosine similarity between two vectors."""
-    return float(np.dot(a, b) / (np.linalg.norm(a) * np.linalg.norm(b)))
+    a_vec = _to_vector(a)
+    b_vec = _to_vector(b)
+    denom = _vector_norm(a_vec) * _vector_norm(b_vec)
+    if denom == 0:
+        return 0.0
+    return _vector_dot(a_vec, b_vec) / denom
 
 def find_table_offline(query: str, top_k: int = 3) -> list[dict]:
     """Offline semantic search using precomputed embeddings in vector_store.json."""
@@ -154,7 +230,10 @@ def find_table_offline(query: str, top_k: int = 3) -> list[dict]:
     q_vec = embed_query_offline(query)
     scored = []
     for entry in store:
-        emb = np.array(entry.get("embedding", []))
+        embedding = entry.get("embedding", [])
+        if not isinstance(embedding, Iterable):
+            continue
+        emb = _to_vector(embedding)
         if len(emb) == 0:
             continue
         score = cosine_similarity(q_vec, emb)
