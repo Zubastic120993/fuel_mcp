@@ -1,6 +1,9 @@
 """
-MCP Local API Service
-=====================
+fuel_mcp/api/mcp_api.py
+=======================
+
+Fuel MCP Local API Service
+--------------------------
 Provides REST endpoints for MCP operations.
 
 Endpoints:
@@ -8,20 +11,19 @@ Endpoints:
 - /status             → Check online/offline mode
 - /query?text=...     → Run semantic MCP query (conversion / VCF)
 - /convert?...        → Perform unit conversion (ASTM Table 1)
-- /vcf?...            → Compute official ISO 91-1 VCF
+- /vcf?...            → Compute official ISO 91-1 / ASTM D1250 VCF
 - /auto_correct?...   → Automatic mass/volume correction
-- /units?...          → Generic unit conversion
 - /tool               → Return OpenAI-compatible JSON schema
 - /history            → Show recent API calls
 - /logs               → Show recent log entries
 """
 
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, Request
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import logging
 import json
-from datetime import datetime
+from datetime import datetime, UTC
 
 from fuel_mcp.core.mcp_core import query_mcp
 from fuel_mcp.core.rag_bridge import ONLINE_MODE
@@ -30,11 +32,14 @@ from fuel_mcp.core.unit_converter import convert as unit_convert
 from fuel_mcp.core.vcf_official_full import vcf_iso_official, auto_correct
 from fuel_mcp.tool_integration import mcp_tool
 
-
 # =====================================================
 # 🔧 FastAPI setup
 # =====================================================
-app = FastAPI(title="Fuel MCP Local API", version="1.3")
+app = FastAPI(
+    title="Fuel MCP Local API",
+    version="1.4.0",
+    description="ISO 91-1 / ASTM D1250 Marine Fuel Correction Processor",
+)
 
 LOG_FILE = Path("logs/mcp_queries.log")
 LOG_FILE.parent.mkdir(exist_ok=True)
@@ -42,8 +47,8 @@ LOG_FILE.parent.mkdir(exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
 )
-
 
 # =====================================================
 # 🏠 Root endpoint — welcome and route overview
@@ -52,20 +57,19 @@ logging.basicConfig(
 def root():
     """Welcome message and route overview."""
     return {
-        "message": "🧩 Welcome to Fuel MCP Local API",
-        "version": "1.3",
+        "service": "🧩 Fuel MCP Local API",
+        "version": app.version,
+        "docs_url": "http://127.0.0.1:8000/docs",
         "available_endpoints": {
             "/status": "Check online/offline mode",
             "/query?text=...": "Run semantic MCP query",
             "/convert?value=...&from_unit=...&to_unit=...": "Perform unit conversion",
-            "/vcf?rho15=...&tempC=...": "Compute official ISO 91-1 / ASTM D1250 VCF",
-            "/auto_correct?fuel=...&tempC=...": "Auto-correct mass/volume",
-            "/units": "Generic converter endpoint",
+            "/vcf?rho15=...&tempC=...": "Compute ISO 91-1 / ASTM D1250 VCF",
+            "/auto_correct?fuel=...&tempC=...": "Auto mass/volume correction",
             "/history": "View recent API calls",
-            "/logs": "View log file entries",
-            "/tool": "Get OpenAI-compatible tool schema",
+            "/logs": "View recent log entries",
+            "/tool": "Get OpenAI-compatible function schema",
         },
-        "docs_url": "http://127.0.0.1:8000/docs",
     }
 
 
@@ -74,13 +78,17 @@ def root():
 # =====================================================
 @app.get("/status")
 def get_status():
-    """Return online/offline mode."""
+    """Return current online/offline mode."""
     try:
-        mode = "online" if ONLINE_MODE else "offline"
-        return {"status": "ok", "mode": mode}
+        mode = "ONLINE" if ONLINE_MODE else "OFFLINE"
+        return {
+            "status": "ok",
+            "mode": mode,
+            "timestamp": datetime.now(UTC).isoformat(),
+        }
     except Exception as e:
         log_error(e, module="mcp_api")
-        return {"status": "error", "message": str(e)}
+        return JSONResponse(status_code=500, content={"error": str(e)})
 
 
 # =====================================================
@@ -95,11 +103,11 @@ def run_query(text: str = Query(..., description="MCP natural-language query")):
     except Exception as e:
         log_error(e, query=text, module="mcp_api")
         logging.error(f"❌ MCP query failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        return JSONResponse(status_code=400, content={"error": str(e)})
 
 
 # =====================================================
-# ⚙️ /convert endpoint — ASTM D1250 Table 1 unit conversion
+# ⚙️ /convert endpoint — ASTM Table 1 unit conversion
 # =====================================================
 @app.get("/convert")
 def convert_units(
@@ -107,7 +115,7 @@ def convert_units(
     from_unit: str = Query(..., description="Unit to convert from"),
     to_unit: str = Query(..., description="Unit to convert to"),
 ):
-    """Perform simple ASTM D1250 Table 1 unit conversion."""
+    """Perform ASTM D1250 Table 1 unit conversion."""
     try:
         result = unit_convert(value, from_unit, to_unit)
         logging.info(f"🔄 Unit conversion: {value} {from_unit} → {result:.6f} {to_unit}")
@@ -126,9 +134,9 @@ def convert_units(
 @app.get("/vcf")
 def get_vcf(
     rho15: float = Query(..., description="Density at 15 °C (kg/m³)"),
-    tempC: float = Query(..., description="Observed temperature °C"),
+    tempC: float = Query(..., description="Observed temperature (°C)"),
 ):
-    """Compute exact Volume Correction Factor (VCF) using ISO 91-1 / ASTM D1250."""
+    """Compute exact Volume Correction Factor (VCF)."""
     try:
         result = vcf_iso_official(rho15=rho15, tempC=tempC)
         logging.info(f"📊 VCF {rho15} kg/m³ @ {tempC} °C = {result['VCF']}")
@@ -139,7 +147,7 @@ def get_vcf(
 
 
 # =====================================================
-# 🧠 /auto_correct endpoint — automatic volume/mass correction
+# ⚖️ /auto_correct endpoint — automatic volume/mass correction
 # =====================================================
 @app.get("/auto_correct")
 def auto_correction(
@@ -149,7 +157,7 @@ def auto_correction(
     tempC: float = Query(...),
     rho15: float | None = Query(None),
 ):
-    """Auto correction for mass/volume — supports user-specified ρ15 (density at 15°C)."""
+    """Auto-corrects mass/volume based on density and temperature."""
     try:
         db_path = Path(__file__).parent.parent / "core" / "tables" / "fuel_data.json"
         with open(db_path) as f:
@@ -168,12 +176,12 @@ def auto_correction(
         logging.info(f"🧮 Auto-correct {fuel}: {tempC} °C @ {rho15} kg/m³ → VCF {result['VCF']}")
         return result
     except Exception as e:
-        log_error(e, query=f"auto_correct {fuel}", module="vcf_iso_official")
+        log_error(e, query=f"auto_correct {fuel}", module="mcp_api")
         return JSONResponse(status_code=400, content={"error": str(e)})
 
 
 # =====================================================
-# 🧠 /tool endpoint — OpenAI / LangChain tool schema
+# 🧰 /tool endpoint — OpenAI / LangChain tool schema
 # =====================================================
 @app.get("/tool")
 def get_tool_schema():
@@ -183,7 +191,7 @@ def get_tool_schema():
             "type": "function",
             "function": {
                 "name": mcp_tool.name,
-                "description": "Marine fuel correction processor tool.",
+                "description": "Marine Fuel Correction Processor Tool",
                 "parameters": {
                     "type": "object",
                     "properties": {
@@ -196,8 +204,8 @@ def get_tool_schema():
                 },
             },
             "meta": {
-                "version": "1.0.0-standalone",
-                "generated_at": datetime.utcnow().isoformat() + "Z",
+                "version": app.version,
+                "generated_at": datetime.now(UTC).isoformat(),
             },
         }
         return JSONResponse(content=schema)
@@ -209,15 +217,15 @@ def get_tool_schema():
 # =====================================================
 # 🧾 /history endpoint
 # =====================================================
-_HISTORY = []
+_HISTORY: list[str] = []
 
 
 @app.middleware("http")
-async def track_requests(request, call_next):
+async def track_requests(request: Request, call_next):
     response = await call_next(request)
     try:
-        if request.url.path in ("/vcf", "/auto_correct", "/convert", "/units"):
-            entry = f"{request.url.path} | params={dict(request.query_params)}"
+        if request.url.path in ("/vcf", "/auto_correct", "/convert", "/query"):
+            entry = f"{datetime.now().isoformat()} | {request.url.path} | {dict(request.query_params)}"
             _HISTORY.append(entry)
             if len(_HISTORY) > 200:
                 _HISTORY.pop(0)
@@ -249,5 +257,4 @@ def get_logs(limit: int = 20):
 # =====================================================
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("fuel_mcp.api.mcp_api:app", host="0.0.0.0", port=8000, reload=True)

@@ -18,7 +18,8 @@ dependencies = [
     "pandas==2.2.3",
     "python-dotenv==1.0.1",
     "requests==2.32.3",
-    "orjson==3.10.7"
+    "orjson==3.10.7",
+    "python-multipart>=0.0.20"
 ]
 
 # ─────────────────────────────
@@ -56,3 +57,12 @@ build-backend = "setuptools.build_meta"
 [tool.setuptools.packages.find]
 include = ["fuel_mcp*"]
 exclude = ["tests*", "examples*", "docs*"]
+
+# ─────────────────────────────
+# 🔹 Pytest configuration
+# ─────────────────────────────
+[tool.pytest.ini_options]
+filterwarnings = [
+    "ignore:Please use `import python_multipart` instead",
+]
+addopts = "-ra -q"

@@ -1,4 +1,3 @@
-
 """
 test_api_endpoints.py
 =====================
@@ -10,7 +9,6 @@ from fastapi.testclient import TestClient
 from fuel_mcp.api.mcp_api import app
 
 client = TestClient(app)
-
 
 # =====================================================
 # 🧭 /status
@@ -60,17 +58,6 @@ def test_auto_correct_endpoint():
     assert "V15_m3" in data
     assert "mass_ton" in data
     assert data["V15_m3"] < 1000  # Corrected volume should be slightly lower
-
-
-# =====================================================
-# 🔁 /units
-# =====================================================
-def test_units_endpoint():
-    res = client.get("/units", params={"value": 10, "from_unit": "m3", "to_unit": "usg"})
-    assert res.status_code == 200
-    data = res.json()
-    assert "result" in data
-    assert data["result"] > 0
 
 
 # =====================================================
