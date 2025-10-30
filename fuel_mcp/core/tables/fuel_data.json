@@ -1,0 +1,17 @@
+{
+  "diesel": {
+    "density_15C": 850.0
+  },
+  "hfo": {
+    "density_15C": 980.0
+  },
+  "jet": {
+    "density_15C": 800.0
+  },
+  "lube": {
+    "density_15C": 910.0
+  },
+  "gasoline": {
+    "density_15C": 740.0
+  }
+}
