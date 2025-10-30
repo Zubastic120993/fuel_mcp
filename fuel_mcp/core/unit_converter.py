@@ -1,13 +1,15 @@
-
 """
 unit_converter.py
 =================
-Standardized conversion factors from ASTM D1250-80 (Volume XI – Table 1)
+Standardized conversion factors from ASTM D1250-80 (Volume XI – Table 1).
 
-All factors are for conversion **at the same temperature**.
-Exact relationships are marked by (†) in the source table.
+All factors assume conversion **at the same temperature**.
+Exact relationships are marked by (†) in the original source table.
 """
 
+# =====================================================
+# 🔹 Conversion Factors
+# =====================================================
 UNIT_CONVERSION = {
     # ────────────────────────────────
     # 📏 LENGTH
@@ -21,13 +23,13 @@ UNIT_CONVERSION = {
     "inch_to_cm": 2.54,        # († exact)
 
     # ────────────────────────────────
-    # ⚖️ WEIGHT
+    # ⚖️ MASS / WEIGHT
     # ────────────────────────────────
-    "long_ton_to_lb": 2240.0,  # (†)
-    "long_ton_to_short_ton": 1.12,  # (†)
+    "long_ton_to_lb": 2240.0,         # (†)
+    "long_ton_to_short_ton": 1.12,    # (†)
     "long_ton_to_tonne": 1.01605,
 
-    "short_ton_to_lb": 2000.0,  # (†)
+    "short_ton_to_lb": 2000.0,        # (†)
     "short_ton_to_long_ton": 0.892857,
     "short_ton_to_tonne": 0.907185,
 
@@ -40,14 +42,14 @@ UNIT_CONVERSION = {
     # ────────────────────────────────
     # 🧴 VOLUME & CAPACITY
     # ────────────────────────────────
-    "usg_to_cuin": 231.0,  # (†)
+    "usg_to_cuin": 231.0,       # (†)
     "usg_to_cuft": 0.133681,
     "usg_to_imp_gal": 0.832674,
     "usg_to_barrel": 0.0238095,
     "usg_to_litre": 3.78541,
 
-    "barrel_to_usg": 42.0,  # (†)
-    "barrel_to_cuin": 9702.0,  # (†)
+    "barrel_to_usg": 42.0,      # (†)
+    "barrel_to_cuin": 9702.0,   # (†)
     "barrel_to_cuft": 5.61458,
     "barrel_to_imp_gal": 34.9723,
     "barrel_to_litre": 158.987,
@@ -78,32 +80,61 @@ UNIT_CONVERSION = {
     "cum_to_usg": 264.172,
     "cum_to_barrel": 6.28981,
     "cum_to_cuft": 35.3147,
-    "cum_to_litre": 1000.0,  # (†)
+    "cum_to_litre": 1000.0,     # (†)
 }
 
 
+# =====================================================
+# 🔹 Normalize Unit Aliases
+# =====================================================
+UNIT_ALIASES = {
+    "m3": "cum",
+    "cubic_meter": "cum",
+    "cubic_metre": "cum",
+    "liter": "litre",
+    "liters": "litre",
+    "bbl": "barrel",
+    "gallon": "usg",
+    "gallons": "usg",
+    "imperial_gallon": "imp_gal",
+}
+
+
+def normalize(unit: str) -> str:
+    """Normalize unit aliases to canonical ASTM keys."""
+    unit = unit.lower().strip()
+    return UNIT_ALIASES.get(unit, unit)
+
+
+# =====================================================
+# 🔹 Core Converter
+# =====================================================
 def convert(value: float, from_unit: str, to_unit: str) -> float:
     """
     Convert between compatible units using ASTM D1250-80 factors.
-    Auto-reverse if only inverse factor is stored.
+    Auto-reverse if only the inverse factor is stored.
     """
-    key = f"{from_unit}_to_{to_unit}"
+    f = normalize(from_unit)
+    t = normalize(to_unit)
+    key = f"{f}_to_{t}"
     factor = UNIT_CONVERSION.get(key)
 
     if factor is not None:
-        return value * factor
+        return round(value * factor, 6)
 
     # try reverse lookup
-    rev_key = f"{to_unit}_to_{from_unit}"
+    rev_key = f"{t}_to_{f}"
     rev_factor = UNIT_CONVERSION.get(rev_key)
     if rev_factor is not None:
-        return value / rev_factor
+        return round(value / rev_factor, 6)
 
     raise ValueError(f"No conversion factor for '{from_unit}' ↔ '{to_unit}'")
 
 
+# =====================================================
+# 🔹 Demo
+# =====================================================
 if __name__ == "__main__":
-    # simple demo
     print(f"1 barrel = {convert(1, 'barrel', 'litre')} L")
-    print(f"1 m³ = {convert(1, 'cum', 'usg')} US gallons")
+    print(f"1 m³ = {convert(1, 'm3', 'usg')} US gallons")
     print(f"1 litre = {convert(1, 'litre', 'barrel')} barrel")
