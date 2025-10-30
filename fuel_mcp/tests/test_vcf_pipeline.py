@@ -64,18 +64,18 @@ def test_vcf_for_multiple_fuels():
 
     print("=" * 80)
     print(f"🎯 Test Results: {passed} passed, {failed} failed")
-    
+
     if failed == 0:
         print("✅ All ASTM D1250 / ISO 91-1 tolerance tests passed!")
     else:
         print(f"⚠️  {failed} test(s) failed - check expected values or formula")
-    
-    return failed == 0
+
+    # ✅ Use pytest assertion instead of return
+    assert failed == 0, f"{failed} VCF test(s) failed"
 
 
 # =====================================================
 # 🔹 Main Entry
 # =====================================================
 if __name__ == "__main__":
-    success = test_vcf_for_multiple_fuels()
-    exit(0 if success else 1)
+    test_vcf_for_multiple_fuels()
