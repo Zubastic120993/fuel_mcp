@@ -1,28 +1,46 @@
-# Virtual environments
+# 🧭 Fuel MCP Project — .gitignore
+# ---------------------------------
+
+# 🔹 Virtual environments
 venv/
 .env
 
-# Bytecode and cache
+# 🔹 Python cache & bytecode
 __pycache__/
 *.pyc
 *.pyo
+*.pyd
 
-# OS / Editor files
+# 🔹 OS & Editor files
 .DS_Store
 .vscode/
 .idea/
 
-# Logs and temporary files
+# 🔹 Logs and temporary files
 *.log
 *.tmp
+logs/
+fuel_mcp/logs/
+fuel_mcp/data/conversion_history.json
 
-# Local data or auto-generated reports
+# 🔹 Local data or reports (not versioned)
 fuel_mcp/tables/*.md
 fuel_mcp/tables/*.json
 
-# Keep only official CSV tables
+# 🔹 Keep only official CSV tables
 !fuel_mcp/tables/official/*.csv
+
+# 🔹 Build & distribution artifacts
+build/
+dist/
+*.egg-info/
+*.spec
+.pytest_cache/
+
+# 🔹 Environment / secrets
 .env
-fuel_mcp/data/conversion_history.json
-fuel_mcp/logs/
-logs/
+.env.*
+
+# 🔹 Misc
+coverage/
+htmlcov/
