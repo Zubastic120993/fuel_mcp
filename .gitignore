@@ -43,4 +43,4 @@ dist/
 
 # 🔹 Misc
 coverage/
-htmlcov/
+htmlcov/fuel_mcp/data/mcp_history.db
