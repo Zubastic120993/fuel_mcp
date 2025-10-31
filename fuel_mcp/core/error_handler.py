@@ -1,30 +1,51 @@
 """
+fuel_mcp/core/error_handler.py
+==============================
+
 Structured Error Handler
-========================
-Captures and logs MCP exceptions in a unified JSON format.
-Used by both mcp_core.py and mcp_api.py.
+------------------------
+Captures and logs MCP exceptions in a unified format.
+All errors are written to both:
+ - logs/mcp_errors.log (text file)
+ - SQLite database (errors table in mcp_history.db)
 """
 
-import json
 import traceback
+import logging
 from datetime import datetime, UTC
 from pathlib import Path
-import logging
+
+from fuel_mcp.core.db_logger import init_db, log_error as log_error_db
 
 # =====================================================
-# 📂 Paths
+# 🔧 Setup
 # =====================================================
 LOG_DIR = Path("logs")
 LOG_DIR.mkdir(exist_ok=True)
-ERROR_FILE = LOG_DIR / "errors.json"
+ERROR_LOG_FILE = LOG_DIR / "mcp_errors.log"
+
+logging.basicConfig(
+    level=logging.ERROR,
+    format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[
+        logging.FileHandler(ERROR_LOG_FILE),
+        logging.StreamHandler(),
+    ],
+)
+
+init_db()  # ensure database exists before logging
+
 
 # =====================================================
-# 🧠 Main Function
+# 🧠 Unified Error Logging
 # =====================================================
 def log_error(exception: Exception, query: str = None, module: str = None):
-    """Append structured error details to logs/errors.json."""
+    """
+    Log structured error information to SQLite + text log file.
+    """
+    timestamp = datetime.now(UTC).isoformat()
     entry = {
-        "timestamp": datetime.now(UTC).isoformat(),
+        "timestamp": timestamp,
         "module": module or "unknown",
         "query": query or "N/A",
         "error_type": type(exception).__name__,
@@ -32,22 +53,29 @@ def log_error(exception: Exception, query: str = None, module: str = None):
         "stacktrace": traceback.format_exc(),
     }
 
+    # 1️⃣ Log to SQLite
     try:
-        existing = json.load(open(ERROR_FILE)) if ERROR_FILE.exists() else []
-    except Exception:
-        existing = []
+        log_error_db(
+            module=entry["module"],
+            message=entry["message"],
+            stacktrace=entry["stacktrace"],
+        )
+    except Exception as db_exc:
+        logging.error(f"⚠️ Failed to log error to SQLite: {db_exc}")
 
-    existing.append(entry)
-    with open(ERROR_FILE, "w") as f:
-        json.dump(existing, f, indent=2)
+    # 2️⃣ Log to file
+    logging.error(
+        f"❌ {entry['module']} failed: {entry['message']}\n"
+        f"→ {entry['error_type']}: {entry['stacktrace'].strip()}"
+    )
 
-    logging.error(f"❌ {entry['module']} failed: {entry['message']}")
 
 # =====================================================
-# 🧪 Quick test
+# 🧪 Manual Test
 # =====================================================
 if __name__ == "__main__":
     try:
         1 / 0
     except Exception as e:
         log_error(e, query="test failure", module="demo")
+        print("✅ Error logged to SQLite and log file.")

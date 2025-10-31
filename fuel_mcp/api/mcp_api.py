@@ -1,17 +1,9 @@
 """
-MCP Local API Service
-=====================
-Provides REST endpoints for MCP operations.
+fuel_mcp/api/mcp_api.py
+=======================
 
-Endpoints:
-- /status              → check online/offline mode
-- /query?text=...      → run semantic MCP query (conversion / VCF)
-- /convert?...         → perform unit conversion (ASTM Table 1)
-- /vcf?...             → perform official ISO 91-1 VCF computation
-- /auto_correct?...    → automatic mass/volume correction
-- /units?...           → generic unit conversion
-- /history             → show recent API calls
-- /logs                → show recent log entries
+Fuel MCP Local API Service — Unified Response Schema Edition (v1.0.3)
+Includes regex-based natural language query parsing.
 """
 
 from fastapi import FastAPI, Query
@@ -19,22 +11,50 @@ from fastapi.responses import JSONResponse
 from pathlib import Path
 import logging
 import json
+import sqlite3
+import platform
+from datetime import datetime, UTC
+from contextlib import asynccontextmanager
 
-from fuel_mcp.core.mcp_core import query_mcp
-from fuel_mcp.core.rag_bridge import ONLINE_MODE
-from fuel_mcp.core.error_handler import log_error
+# -----------------------------------------------------
+# ✅ Core imports
+# -----------------------------------------------------
+from fuel_mcp.core.regex_parser import parse_query
+from fuel_mcp.core.vcf_official_full import vcf_iso_official, auto_correct
 from fuel_mcp.core.unit_converter import convert as unit_convert
-from fuel_mcp.core.vcf_official_full import (
-    vcf_iso_official,
-    correct_volume,
-    correct_mass,
-    auto_correct,
-)
+from fuel_mcp.core.response_schema import success_response, error_response
+from fuel_mcp.core.db_logger import get_recent_queries, init_db, DB_PATH
+from fuel_mcp.core.async_logger import log_query_async, log_error_async
+from fuel_mcp.core.error_handler import log_error
+from fuel_mcp.tool_integration import mcp_tool
+from fuel_mcp import __version__
 
 # =====================================================
-# 🔧 FastAPI setup
+# 🧩 Lifespan handler
 # =====================================================
-app = FastAPI(title="MCP Local API", version="1.3")
+START_TIME = datetime.now(UTC)
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    try:
+        init_db()
+        logging.info("🧩 SQLite initialized successfully (lifespan startup).")
+        yield
+    finally:
+        logging.info("🧹 Fuel MCP API shutting down cleanly.")
+
+
+# =====================================================
+# ⚙️ FastAPI setup
+# =====================================================
+app = FastAPI(
+    title="Fuel MCP Local API",
+    version=__version__,
+    description="ISO 91-1 / ASTM D1250 Marine Fuel Correction Processor",
+    lifespan=lifespan,
+)
+init_db()
 
 LOG_FILE = Path("logs/mcp_queries.log")
 LOG_FILE.parent.mkdir(exist_ok=True)
@@ -42,186 +62,294 @@ LOG_FILE.parent.mkdir(exist_ok=True)
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s | %(levelname)s | %(message)s",
+    handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
 )
 
 # =====================================================
-# 📡 /status endpoint
-# =====================================================
-@app.get("/status")
-def get_status():
-    """Return online/offline mode."""
-    try:
-        mode = "online" if ONLINE_MODE else "offline"
-        return {"status": "ok", "mode": mode}
-    except Exception as e:
-        log_error(e, module="mcp_api")
-        return {"status": "error", "message": str(e)}
-
-
-# =====================================================
-# 🧠 /query endpoint
+# 🧠 /query — Intelligent Parser + Unified Schema
 # =====================================================
 @app.get("/query")
-def run_query(text: str = Query(..., description="MCP natural-language query")):
-    """Perform a semantic MCP query (conversion / correction)."""
+def run_query(text: str = Query(...)):
+    """
+    Automatically interprets natural-language queries such as:
+      - "convert 500 L diesel @ 30°C"
+      - "calculate VCF for HFO at 25 degrees"
+      - "mass of 100 m3 methanol at 20°C"
+    and routes them to the appropriate core function.
+    """
+    from fuel_mcp.core.regex_parser import process_query
+    from fuel_mcp.core.fuel_density_loader import get_fuel_density
+
     try:
-        result = query_mcp(text)
-        return JSONResponse(content=result)
+        # Parse natural-language query
+        parsed = process_query(text)
+        mode = parsed.get("mode", "unknown")
+        fuel = parsed.get("fuel", "diesel")
+
+        # Fill missing density dynamically
+        if "rho15" not in parsed or not parsed["rho15"]:
+            parsed["rho15"] = get_fuel_density(fuel)
+
+        # Route intelligently
+        if mode == "vcf":
+            result = vcf_iso_official(rho15=parsed["rho15"], tempC=parsed["tempC"])
+        elif mode in ("convert", "volume_input"):
+            result = auto_correct(
+                fuel=fuel,
+                volume_m3=parsed.get("volume_m3"),
+                mass_ton=parsed.get("mass_ton"),
+                tempC=parsed.get("tempC", 15.0),
+            )
+        else:
+            raise ValueError(f"Unsupported query mode: {mode}")
+
+        # Log + respond
+        log_query_async(text, result, mode, True)
+        return JSONResponse(content=success_response(result, text, mode, app.version))
+
     except Exception as e:
         log_error(e, query=text, module="mcp_api")
-        logging.error(f"❌ MCP query failed: {e}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
+        log_error_async("mcp_api", str(e))
+        log_query_async(text, {"error": str(e)}, "error", False)
+        return JSONResponse(
+            status_code=400,
+            content=error_response(str(e), text, "error", app.version, "/query"),
+        )
 
 
 # =====================================================
-# ⚙️ /convert endpoint — ASTM D1250 Table 1 unit conversion
+# ⚙️ /convert — Unified schema
 # =====================================================
 @app.get("/convert")
-def convert_units(
-    value: float = Query(..., description="Numeric value to convert"),
-    from_unit: str = Query(..., description="Unit to convert from"),
-    to_unit: str = Query(..., description="Unit to convert to"),
-):
-    """Perform simple ASTM D1250 Table 1 unit conversion."""
+def convert_units(value: float = Query(...), from_unit: str = Query(...), to_unit: str = Query(...)):
+    query_str = f"convert {value} {from_unit}->{to_unit}"
     try:
         result = unit_convert(value, from_unit, to_unit)
-        logging.info(f"🔄 Unit conversion: {value} {from_unit} → {result:.6f} {to_unit}")
-        return {
-            "input": {"value": value, "from": from_unit, "to": to_unit},
-            "result": result,
-        }
+        log_query_async(query_str, result, "unit_convert", True)
+        return JSONResponse(content=success_response(result, query_str, "unit_convert", app.version))
     except Exception as e:
-        log_error(e, query=f"convert {value} {from_unit}->{to_unit}", module="unit_converter")
-        return JSONResponse(status_code=400, content={"error": str(e)})
+        log_error(e, query=query_str, module="unit_converter")
+        log_error_async("unit_converter", str(e))
+        return JSONResponse(
+            status_code=400,
+            content=error_response(str(e), query_str, "error", app.version, "/convert"),
+        )
 
 
 # =====================================================
-# 🧮 /vcf endpoint — official ISO 91-1 / ASTM D1250 computation
+# 🧮 /vcf — Unified schema
 # =====================================================
 @app.get("/vcf")
-def get_vcf(
-    rho15: float = Query(..., description="Density at 15 °C (kg/m³)"),
-    tempC: float = Query(..., description="Observed temperature °C"),
-):
-    """Compute exact Volume Correction Factor (VCF) using ISO 91-1 / ASTM D1250."""
+def get_vcf(rho15: float = Query(...), tempC: float = Query(...)):
+    query_str = f"vcf {rho15}@{tempC}"
     try:
         result = vcf_iso_official(rho15=rho15, tempC=tempC)
-        logging.info(f"📊 VCF {rho15} kg/m³ @ {tempC} °C = {result['VCF']}")
-        return result
+        log_query_async(query_str, result, "vcf", True)
+        return JSONResponse(content=success_response(result, query_str, "vcf", app.version))
     except Exception as e:
-        log_error(e, query=f"vcf {rho15}@{tempC}", module="vcf_iso_official")
-        return JSONResponse(status_code=400, content={"error": str(e)})
+        log_error(e, query=query_str, module="vcf_iso_official")
+        log_error_async("vcf_iso_official", str(e))
+        return JSONResponse(
+            status_code=400,
+            content=error_response(str(e), query_str, "error", app.version, "/vcf"),
+        )
 
 
 # =====================================================
-# 🧠 /auto_correct endpoint — automatic volume/mass correction
+# ⚖️ /auto_correct — Unified schema + dynamic density loader
 # =====================================================
 @app.get("/auto_correct")
 def auto_correction(
     fuel: str = Query(...),
-    volume_m3: float | None = Query(None),
-    mass_ton: float | None = Query(None),
+    volume_m3: float | None = None,
+    mass_ton: float | None = None,
     tempC: float = Query(...),
-    rho15: float | None = Query(None),
-    db_path: str | None = None,
+    rho15: float | None = None,
 ):
-    """
-    Auto correction for mass/volume — supports user-specified ρ15 (density at 15°C).
-    If rho15 is not given, uses default from fuel_data.json.
-    """
+    from fuel_mcp.core.fuel_density_loader import get_fuel_density
+
+    query_str = f"auto_correct {fuel}@{tempC}"
     try:
-        # Load database if needed
-        if db_path is None:
-            db_path = Path(__file__).parent.parent / "core" / "tables" / "fuel_data.json"
+        # 🔹 Load density dynamically from JSON if not provided
+        rho15 = rho15 or get_fuel_density(fuel)
 
-        with open(db_path) as f:
-            fuels = json.load(f)
-
-        # ✅ Use user-specified density if provided
-        if rho15 is None:
-            rho15 = fuels.get(fuel, {}).get("density_15C", 850.0)
-            logging.info(f"📘 Using database default density ρ15={rho15} kg/m³ for {fuel}")
-        else:
-            logging.info(f"⚙️ Using user-specified density ρ15={rho15} kg/m³ for {fuel}")
-
-        # Pass to calculation core
         result = auto_correct(
             fuel=fuel,
             volume_m3=volume_m3,
             mass_ton=mass_ton,
             tempC=tempC,
-            db_path=db_path,
         )
-
-        # Add metadata
         result["fuel"] = fuel
         result["rho15"] = round(rho15, 3)
 
-        logging.info(f"🧮 Auto-correct {fuel}: {tempC} °C @ {rho15} kg/m³ → VCF {result['VCF']}")
-        return result
+        log_query_async(query_str, result, "auto_correct", True)
+        return JSONResponse(content=success_response(result, query_str, "auto_correct", app.version))
 
     except Exception as e:
-        log_error(e, query=f"auto_correct {fuel}", module="vcf_iso_official")
-        return JSONResponse(status_code=400, content={"error": str(e)})
+        log_error(e, query=query_str, module="mcp_api")
+        log_error_async("mcp_api", str(e))
+        return JSONResponse(
+            status_code=400,
+            content=error_response(str(e), query_str, "error", app.version, "/auto_correct"),
+        )
 
 
 # =====================================================
-# 🧮 /units endpoint — alternative converter
+# 🧠 /debug — schema consistent
 # =====================================================
-@app.get("/units")
-def units_convert(
-    value: float = Query(...),
-    from_unit: str = Query(...),
-    to_unit: str = Query(...),
-):
-    """Generic converter endpoint."""
+@app.get("/debug")
+def get_debug_info():
     try:
-        result = unit_convert(value, from_unit, to_unit)
-        return {"input": {"value": value, "from": from_unit, "to": to_unit}, "result": result}
+        log_size = LOG_FILE.stat().st_size / 1024 if LOG_FILE.exists() else 0
+        db_size = Path(DB_PATH).stat().st_size / 1024 if Path(DB_PATH).exists() else 0
+        result = {
+            "service": "Fuel MCP Diagnostic Snapshot",
+            "version": app.version,
+            "python_version": platform.python_version(),
+            "os": f"{platform.system()} {platform.release()}",
+            "uptime_sec": round((datetime.now(UTC) - START_TIME).total_seconds(), 2),
+            "db_path": str(DB_PATH.resolve()),
+            "db_size_kb": round(db_size, 2),
+            "log_file": str(LOG_FILE.resolve()),
+            "log_size_kb": round(log_size, 2),
+        }
+        return JSONResponse(content=success_response(result, "debug info", "debug", app.version))
     except Exception as e:
-        log_error(e, query=f"units {value} {from_unit}->{to_unit}", module="unit_converter")
-        return JSONResponse(status_code=400, content={"error": str(e)})
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "debug", "error", app.version, "/debug"),
+        )
 
 
 # =====================================================
-# 🧾 /history endpoint
+# 📡 /status — Unified schema
 # =====================================================
-_HISTORY = []
-
-@app.middleware("http")
-async def track_requests(request, call_next):
-    response = await call_next(request)
+@app.get("/status")
+def get_status():
     try:
-        if request.url.path in ("/vcf", "/auto_correct", "/convert", "/units"):
-            entry = f"{request.url.path} | params={dict(request.query_params)}"
-            _HISTORY.append(entry)
-            if len(_HISTORY) > 200:
-                _HISTORY.pop(0)
-    except Exception:
-        pass
-    return response
+        from fuel_mcp.core.rag_bridge import ONLINE_MODE
+        mode = "ONLINE" if ONLINE_MODE else "OFFLINE"
+        result = {"status": "ok", "mode": mode}
+        return JSONResponse(content=success_response(result, "status check", "status", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "status check", "error", app.version, "/status"),
+        )
 
+
+# =====================================================
+# ⚠️ /errors — Unified schema
+# =====================================================
+@app.get("/errors")
+def get_errors(limit: int = 20, module: str | None = None):
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        if module:
+            cur.execute(
+                "SELECT timestamp, module, message, stacktrace FROM errors WHERE module = ? ORDER BY id DESC LIMIT ?",
+                (module, limit),
+            )
+        else:
+            cur.execute("SELECT timestamp, module, message, stacktrace FROM errors ORDER BY id DESC LIMIT ?", (limit,))
+        rows = cur.fetchall()
+        conn.close()
+        result = [{"timestamp": ts, "module": mod, "message": msg, "stacktrace": stack} for ts, mod, msg, stack in rows]
+        return JSONResponse(content=success_response(result, f"errors (module={module})", "errors", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "errors", "error", app.version, "/errors"),
+        )
+
+
+# =====================================================
+# 📊 /metrics — Unified schema
+# =====================================================
+@app.get("/metrics")
+def get_metrics():
+    try:
+        conn = sqlite3.connect(DB_PATH)
+        cur = conn.cursor()
+        cur.execute("SELECT COUNT(*) FROM queries")
+        total = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM queries WHERE success = 1")
+        success = cur.fetchone()[0]
+        cur.execute("SELECT COUNT(*) FROM queries WHERE success = 0")
+        failed = cur.fetchone()[0]
+        conn.close()
+        result = {
+            "total_queries": total,
+            "successful_queries": success,
+            "failed_queries": failed,
+            "uptime_seconds": round((datetime.now(UTC) - START_TIME).total_seconds(), 2),
+        }
+        return JSONResponse(content=success_response(result, "metrics", "metrics", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "metrics", "error", app.version, "/metrics"),
+        )
+
+
+# =====================================================
+# 🧾 /history — Unified schema
+# =====================================================
 @app.get("/history")
 def get_history(limit: int = 20):
-    """Return recent API calls."""
-    return {"entries": _HISTORY[-limit:]}
+    try:
+        rows = get_recent_queries(limit)
+        result = [{"timestamp": ts, "query": q, "mode": m, "success": bool(s)} for ts, q, m, s in rows]
+        return JSONResponse(content=success_response(result, "history", "history", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "history", "error", app.version, "/history"),
+        )
 
 
 # =====================================================
-# 📜 /logs endpoint
+# 📜 /logs — Unified schema
 # =====================================================
 @app.get("/logs")
 def get_logs(limit: int = 20):
-    """Return last N log lines."""
-    if not LOG_FILE.exists():
-        return {"message": "No log file yet."}
-    lines = LOG_FILE.read_text().splitlines()[-limit:]
-    return {"entries": lines}
+    try:
+        if not LOG_FILE.exists():
+            result = {"message": "No log file yet."}
+        else:
+            result = {"entries": LOG_FILE.read_text().splitlines()[-limit:]}
+        return JSONResponse(content=success_response(result, "logs", "logs", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "logs", "error", app.version, "/logs"),
+        )
 
 
 # =====================================================
-# 🧪 Run standalone
+# 🧰 /tool — Unified schema
 # =====================================================
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run("fuel_mcp.api.mcp_api:app", host="0.0.0.0", port=8000, reload=True)
+@app.get("/tool")
+def get_tool_schema():
+    try:
+        schema = {
+            "type": "function",
+            "function": {
+                "name": mcp_tool.name,
+                "description": "Marine Fuel Correction Processor Tool",
+                "parameters": {
+                    "type": "object",
+                    "properties": {
+                        "query": {"type": "string", "description": "Example: 'calculate VCF for diesel at 25°C'."},
+                    },
+                    "required": ["query"],
+                },
+            },
+        }
+        return JSONResponse(content=success_response(schema, "tool schema", "tool", app.version))
+    except Exception as e:
+        return JSONResponse(
+            status_code=500,
+            content=error_response(str(e), "tool", "error", app.version, "/tool"),
+        )
