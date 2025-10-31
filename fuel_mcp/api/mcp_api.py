@@ -3,7 +3,7 @@ fuel_mcp/api/mcp_api.py
 =======================
 
 Fuel MCP Local API Service — Unified Response Schema Edition (v1.0.3)
-Includes regex-based natural language query parsing.
+Includes regex-based natural language query parsing with reverse conversion support.
 """
 
 from fastapi import FastAPI, Query
@@ -19,7 +19,7 @@ from contextlib import asynccontextmanager
 # -----------------------------------------------------
 # ✅ Core imports
 # -----------------------------------------------------
-from fuel_mcp.core.regex_parser import parse_query
+from fuel_mcp.core.regex_parser import process_query
 from fuel_mcp.core.vcf_official_full import vcf_iso_official, auto_correct
 from fuel_mcp.core.unit_converter import convert as unit_convert
 from fuel_mcp.core.response_schema import success_response, error_response
@@ -74,36 +74,19 @@ def run_query(text: str = Query(...)):
     Automatically interprets natural-language queries such as:
       - "convert 500 L diesel @ 30°C"
       - "calculate VCF for HFO at 25 degrees"
-      - "mass of 100 m3 methanol at 20°C"
-    and routes them to the appropriate core function.
+      - "convert 2 tons of diesel to m3 @ 25°C"
     """
-    from fuel_mcp.core.regex_parser import process_query
-    from fuel_mcp.core.fuel_density_loader import get_fuel_density
-
     try:
-        # Parse natural-language query
-        parsed = process_query(text)
-        mode = parsed.get("mode", "unknown")
-        fuel = parsed.get("fuel", "diesel")
+        result = process_query(text)
+        mode = result.get("mode", "unknown")
 
-        # Fill missing density dynamically
-        if "rho15" not in parsed or not parsed["rho15"]:
-            parsed["rho15"] = get_fuel_density(fuel)
+        if "error" in result:
+            raise ValueError(result["error"])
 
-        # Route intelligently
-        if mode == "vcf":
-            result = vcf_iso_official(rho15=parsed["rho15"], tempC=parsed["tempC"])
-        elif mode in ("convert", "volume_input"):
-            result = auto_correct(
-                fuel=fuel,
-                volume_m3=parsed.get("volume_m3"),
-                mass_ton=parsed.get("mass_ton"),
-                tempC=parsed.get("tempC", 15.0),
-            )
-        else:
+        if mode not in ("vcf", "convert", "reverse", "volume_input"):
             raise ValueError(f"Unsupported query mode: {mode}")
 
-        # Log + respond
+        # Log + return schema
         log_query_async(text, result, mode, True)
         return JSONResponse(content=success_response(result, text, mode, app.version))
 
@@ -170,15 +153,9 @@ def auto_correction(
 
     query_str = f"auto_correct {fuel}@{tempC}"
     try:
-        # 🔹 Load density dynamically from JSON if not provided
         rho15 = rho15 or get_fuel_density(fuel)
 
-        result = auto_correct(
-            fuel=fuel,
-            volume_m3=volume_m3,
-            mass_ton=mass_ton,
-            tempC=tempC,
-        )
+        result = auto_correct(fuel=fuel, volume_m3=volume_m3, mass_ton=mass_ton, tempC=tempC)
         result["fuel"] = fuel
         result["rho15"] = round(rho15, 3)
 

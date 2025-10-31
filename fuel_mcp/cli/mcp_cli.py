@@ -36,16 +36,25 @@ def cli_status():
 
 
 # =====================================================
-# 🧪 TEST COMMAND
+# 🧪 TEST COMMAND — Auto-discovers all tests
 # =====================================================
 def cli_test():
-    """Run pytest suite and save results to /logs/test_results.json."""
+    """Run full pytest suite and save JSON summary to /logs/test_results.json."""
     logs_path = Path("logs")
     logs_path.mkdir(exist_ok=True)
     json_report = logs_path / "test_results.json"
 
     print("\n🧩 Running pytest suite...\n")
-    cmd = ["pytest", "-q", "--json-report", f"--json-report-file={json_report}"]
+
+    cmd = [
+        "pytest",
+        "-q",
+        "fuel_mcp/tests",
+        "--disable-warnings",
+        "--maxfail=1",
+        "--json-report",
+        f"--json-report-file={json_report}",
+    ]
 
     process = subprocess.Popen(cmd, text=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
 
@@ -55,16 +64,20 @@ def cli_test():
     process.wait()
     exit_code = process.returncode
 
+    # --- Parse and summarize JSON output ---
     if json_report.exists():
         print(f"\n📝 JSON summary saved to: {json_report.resolve()}")
         try:
             with open(json_report) as f:
                 report = json.load(f)
             summary = report.get("summary", {})
+            total = summary.get("total", 0)
+            passed = summary.get("passed", 0)
+            failed = summary.get("failed", 0)
+            skipped = summary.get("skipped", 0)
             print(
-                f"\n✅ Tests: {summary.get('passed', 0)} passed, "
-                f"{summary.get('failed', 0)} failed, "
-                f"{summary.get('skipped', 0)} skipped."
+                f"\n✅ Pytest Summary: {passed}/{total} passed "
+                f"({failed} failed, {skipped} skipped)"
             )
         except Exception as e:
             print(f"⚠️ Failed to parse JSON summary: {e}")
