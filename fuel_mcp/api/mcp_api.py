@@ -2,9 +2,8 @@
 fuel_mcp/api/mcp_api.py
 =======================
 
-Fuel MCP Local API Service — Unified Response Schema Edition
-------------------------------------------------------------
-Now uses centralized success/error response helpers.
+Fuel MCP Local API Service — Unified Response Schema Edition (v1.0.3)
+Includes regex-based natural language query parsing.
 """
 
 from fastapi import FastAPI, Query
@@ -17,15 +16,18 @@ import platform
 from datetime import datetime, UTC
 from contextlib import asynccontextmanager
 
-from fuel_mcp.core.mcp_core import query_mcp
-from fuel_mcp.core.rag_bridge import ONLINE_MODE
-from fuel_mcp.core.error_handler import log_error
-from fuel_mcp.core.unit_converter import convert as unit_convert
+# -----------------------------------------------------
+# ✅ Core imports
+# -----------------------------------------------------
+from fuel_mcp.core.regex_parser import parse_query
 from fuel_mcp.core.vcf_official_full import vcf_iso_official, auto_correct
-from fuel_mcp.tool_integration import mcp_tool
+from fuel_mcp.core.unit_converter import convert as unit_convert
+from fuel_mcp.core.response_schema import success_response, error_response
 from fuel_mcp.core.db_logger import get_recent_queries, init_db, DB_PATH
 from fuel_mcp.core.async_logger import log_query_async, log_error_async
-from fuel_mcp.core.response_schema import success_response, error_response
+from fuel_mcp.core.error_handler import log_error
+from fuel_mcp.tool_integration import mcp_tool
+from fuel_mcp import __version__
 
 # =====================================================
 # 🧩 Lifespan handler
@@ -44,11 +46,11 @@ async def lifespan(app: FastAPI):
 
 
 # =====================================================
-# 🔧 FastAPI setup
+# ⚙️ FastAPI setup
 # =====================================================
 app = FastAPI(
     title="Fuel MCP Local API",
-    version="1.5.0",
+    version=__version__,
     description="ISO 91-1 / ASTM D1250 Marine Fuel Correction Processor",
     lifespan=lifespan,
 )
@@ -63,20 +65,52 @@ logging.basicConfig(
     handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
 )
 
-
 # =====================================================
-# 🧠 /query — Unified schema
+# 🧠 /query — Intelligent Parser + Unified Schema
 # =====================================================
 @app.get("/query")
 def run_query(text: str = Query(...)):
+    """
+    Automatically interprets natural-language queries such as:
+      - "convert 500 L diesel @ 30°C"
+      - "calculate VCF for HFO at 25 degrees"
+      - "mass of 100 m3 methanol at 20°C"
+    and routes them to the appropriate core function.
+    """
+    from fuel_mcp.core.regex_parser import process_query
+    from fuel_mcp.core.fuel_density_loader import get_fuel_density
+
     try:
-        result = query_mcp(text)
-        log_query_async(text, result, mode=result.get("_meta", {}).get("mode", "unknown"), success=True)
-        return JSONResponse(content=success_response(result, text, "query", app.version))
+        # Parse natural-language query
+        parsed = process_query(text)
+        mode = parsed.get("mode", "unknown")
+        fuel = parsed.get("fuel", "diesel")
+
+        # Fill missing density dynamically
+        if "rho15" not in parsed or not parsed["rho15"]:
+            parsed["rho15"] = get_fuel_density(fuel)
+
+        # Route intelligently
+        if mode == "vcf":
+            result = vcf_iso_official(rho15=parsed["rho15"], tempC=parsed["tempC"])
+        elif mode in ("convert", "volume_input"):
+            result = auto_correct(
+                fuel=fuel,
+                volume_m3=parsed.get("volume_m3"),
+                mass_ton=parsed.get("mass_ton"),
+                tempC=parsed.get("tempC", 15.0),
+            )
+        else:
+            raise ValueError(f"Unsupported query mode: {mode}")
+
+        # Log + respond
+        log_query_async(text, result, mode, True)
+        return JSONResponse(content=success_response(result, text, mode, app.version))
+
     except Exception as e:
         log_error(e, query=text, module="mcp_api")
         log_error_async("mcp_api", str(e))
-        log_query_async(text, {"error": str(e)}, mode="error", success=False)
+        log_query_async(text, {"error": str(e)}, "error", False)
         return JSONResponse(
             status_code=400,
             content=error_response(str(e), text, "error", app.version, "/query"),
@@ -122,7 +156,7 @@ def get_vcf(rho15: float = Query(...), tempC: float = Query(...)):
 
 
 # =====================================================
-# ⚖️ /auto_correct — Unified schema
+# ⚖️ /auto_correct — Unified schema + dynamic density loader
 # =====================================================
 @app.get("/auto_correct")
 def auto_correction(
@@ -132,17 +166,25 @@ def auto_correction(
     tempC: float = Query(...),
     rho15: float | None = None,
 ):
+    from fuel_mcp.core.fuel_density_loader import get_fuel_density
+
     query_str = f"auto_correct {fuel}@{tempC}"
     try:
-        db_path = Path(__file__).parent.parent / "core" / "tables" / "fuel_data.json"
-        with open(db_path) as f:
-            fuels = json.load(f)
-        rho15 = rho15 or fuels.get(fuel, {}).get("density_15C", 850.0)
-        result = auto_correct(fuel=fuel, volume_m3=volume_m3, mass_ton=mass_ton, tempC=tempC, db_path=db_path)
+        # 🔹 Load density dynamically from JSON if not provided
+        rho15 = rho15 or get_fuel_density(fuel)
+
+        result = auto_correct(
+            fuel=fuel,
+            volume_m3=volume_m3,
+            mass_ton=mass_ton,
+            tempC=tempC,
+        )
         result["fuel"] = fuel
         result["rho15"] = round(rho15, 3)
+
         log_query_async(query_str, result, "auto_correct", True)
         return JSONResponse(content=success_response(result, query_str, "auto_correct", app.version))
+
     except Exception as e:
         log_error(e, query=query_str, module="mcp_api")
         log_error_async("mcp_api", str(e))
@@ -153,7 +195,7 @@ def auto_correction(
 
 
 # =====================================================
-# 🧠 /debug — unchanged but schema consistent
+# 🧠 /debug — schema consistent
 # =====================================================
 @app.get("/debug")
 def get_debug_info():
@@ -178,6 +220,7 @@ def get_debug_info():
             content=error_response(str(e), "debug", "error", app.version, "/debug"),
         )
 
+
 # =====================================================
 # 📡 /status — Unified schema
 # =====================================================
@@ -186,10 +229,7 @@ def get_status():
     try:
         from fuel_mcp.core.rag_bridge import ONLINE_MODE
         mode = "ONLINE" if ONLINE_MODE else "OFFLINE"
-        result = {
-            "status": "ok",
-            "mode": mode,
-        }
+        result = {"status": "ok", "mode": mode}
         return JSONResponse(content=success_response(result, "status check", "status", app.version))
     except Exception as e:
         return JSONResponse(
@@ -197,12 +237,12 @@ def get_status():
             content=error_response(str(e), "status check", "error", app.version, "/status"),
         )
 
+
 # =====================================================
 # ⚠️ /errors — Unified schema
 # =====================================================
 @app.get("/errors")
 def get_errors(limit: int = 20, module: str | None = None):
-    import sqlite3
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
@@ -215,10 +255,7 @@ def get_errors(limit: int = 20, module: str | None = None):
             cur.execute("SELECT timestamp, module, message, stacktrace FROM errors ORDER BY id DESC LIMIT ?", (limit,))
         rows = cur.fetchall()
         conn.close()
-        result = [
-            {"timestamp": ts, "module": mod, "message": msg, "stacktrace": stack}
-            for ts, mod, msg, stack in rows
-        ]
+        result = [{"timestamp": ts, "module": mod, "message": msg, "stacktrace": stack} for ts, mod, msg, stack in rows]
         return JSONResponse(content=success_response(result, f"errors (module={module})", "errors", app.version))
     except Exception as e:
         return JSONResponse(
@@ -226,13 +263,12 @@ def get_errors(limit: int = 20, module: str | None = None):
             content=error_response(str(e), "errors", "error", app.version, "/errors"),
         )
 
+
 # =====================================================
 # 📊 /metrics — Unified schema
 # =====================================================
 @app.get("/metrics")
 def get_metrics():
-    import sqlite3
-    from datetime import datetime, UTC
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
@@ -256,12 +292,12 @@ def get_metrics():
             content=error_response(str(e), "metrics", "error", app.version, "/metrics"),
         )
 
+
 # =====================================================
 # 🧾 /history — Unified schema
 # =====================================================
 @app.get("/history")
 def get_history(limit: int = 20):
-    from fuel_mcp.core.db_logger import get_recent_queries
     try:
         rows = get_recent_queries(limit)
         result = [{"timestamp": ts, "query": q, "mode": m, "success": bool(s)} for ts, q, m, s in rows]
@@ -271,6 +307,7 @@ def get_history(limit: int = 20):
             status_code=500,
             content=error_response(str(e), "history", "error", app.version, "/history"),
         )
+
 
 # =====================================================
 # 📜 /logs — Unified schema
@@ -288,6 +325,7 @@ def get_logs(limit: int = 20):
             status_code=500,
             content=error_response(str(e), "logs", "error", app.version, "/logs"),
         )
+
 
 # =====================================================
 # 🧰 /tool — Unified schema
