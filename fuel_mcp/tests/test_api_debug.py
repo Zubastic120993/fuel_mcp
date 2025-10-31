@@ -17,7 +17,7 @@ def test_debug_endpoint_status():
 def test_debug_sizes_are_numbers():
     res = client.get("/debug")
     data = res.json()
-    assert isinstance(data["db_size_kb"], (int, float))
+    assert isinstance(data["result"]["db_size_kb"], (int, float))
     assert isinstance(data["log_size_kb"], (int, float))
 
 def test_debug_contains_timestamp():

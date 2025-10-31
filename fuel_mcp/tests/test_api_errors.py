@@ -26,7 +26,7 @@ def test_errors_endpoint_basic():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
+    assert isinstance(data["result"]["entries"], list)
 
 
 # -----------------------------------------------------
@@ -37,9 +37,9 @@ def test_errors_endpoint_with_module_filter():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
+    assert isinstance(data["result"]["entries"], list)
     # If entries exist, all must match the requested module
-    for e in data["entries"]:
+    for e in data["result"]["entries"]:
         assert e["module"] == "mcp_api"
 
 
@@ -51,4 +51,4 @@ def test_errors_endpoint_limit_param():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert len(data["entries"]) <= 5
+    assert len(data["result"]["entries"]) <= 5

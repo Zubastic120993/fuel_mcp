@@ -31,7 +31,7 @@ def test_status_endpoint():
     res = client.get("/status")
     assert res.status_code == 200
     data = res.json()
-    assert "status" in data and data["status"] == "ok"
+    assert "status" in data and data["result"]["status"] == "ok"
     assert data["mode"] in ["OFFLINE", "ONLINE"]
 
 # -----------------------------------------------------
@@ -42,7 +42,7 @@ def test_vcf_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "VCF" in data
-    assert 0.98 < data["VCF"] < 1.0  # expected correction range
+    assert 0.98 < data["result"]["VCF"] < 1.0  # expected correction range
 
 # -----------------------------------------------------
 # ⚙️ CONVERT ENDPOINT
@@ -64,7 +64,7 @@ def test_auto_correct_endpoint():
     data = res.json()
     assert "VCF" in data
     assert "rho15" in data
-    assert 0.98 < data["VCF"] < 1.0
+    assert 0.98 < data["result"]["VCF"] < 1.0
 
 # -----------------------------------------------------
 # 🧠 QUERY ENDPOINT
@@ -84,8 +84,8 @@ def test_history_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
-    assert len(data["entries"]) >= 1  # should not be empty after previous queries
+    assert isinstance(data["result"]["entries"], list)
+    assert len(data["result"]["entries"]) >= 1  # should not be empty after previous queries
 
 # -----------------------------------------------------
 # ⚠️ ERRORS ENDPOINT
@@ -95,10 +95,10 @@ def test_errors_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
+    assert isinstance(data["result"]["entries"], list)
     # It’s fine if empty, but structure must exist
-    if len(data["entries"]) > 0:
-        entry = data["entries"][0]
+    if len(data["result"]["entries"]) > 0:
+        entry = data["result"]["entries"][0]
         assert "timestamp" in entry
         assert "module" in entry
         assert "message" in entry
@@ -120,7 +120,7 @@ def test_metrics_endpoint():
         "timestamp",
     ]:
         assert key in data
-    assert isinstance(data["total_queries"], int)
+    assert isinstance(data["result"]["total_queries"], int)
     assert "%" in data["success_ratio"]
 
 # -----------------------------------------------------
@@ -141,4 +141,4 @@ def test_logs_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
+    assert isinstance(data["result"]["entries"], list)

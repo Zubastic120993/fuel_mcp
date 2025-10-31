@@ -36,8 +36,8 @@ def test_metrics_endpoint_status():
         assert key in data, f"Missing key: {key}"
 
     # Value validation
-    assert isinstance(data["uptime_seconds"], (int, float))
-    assert isinstance(data["total_queries"], int)
+    assert isinstance(data["result"]["uptime_seconds"], (int, float))
+    assert isinstance(data["result"]["total_queries"], int)
     assert isinstance(data["successful_queries"], int)
     assert isinstance(data["failed_queries"], int)
     assert isinstance(data["success_ratio"], str)

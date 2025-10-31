@@ -18,7 +18,7 @@ def test_status_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "status" in data
-    assert data["status"] == "ok"
+    assert data["result"]["status"] == "ok"
 
 
 # =====================================================
@@ -40,7 +40,7 @@ def test_vcf_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "VCF" in data
-    assert 0.99 < data["VCF"] < 1.0
+    assert 0.99 < data["result"]["VCF"] < 1.0
 
 
 # =====================================================
@@ -57,7 +57,7 @@ def test_auto_correct_endpoint():
     data = res.json()
     assert "V15_m3" in data
     assert "mass_ton" in data
-    assert data["V15_m3"] < 1000  # Corrected volume should be slightly lower
+    assert data["result"]["V15_m3"] < 1000  # Corrected volume should be slightly lower
 
 
 # =====================================================
@@ -68,7 +68,7 @@ def test_history_endpoint():
     assert res.status_code == 200
     data = res.json()
     assert "entries" in data
-    assert isinstance(data["entries"], list)
+    assert isinstance(data["result"]["entries"], list)
 
 
 # =====================================================
