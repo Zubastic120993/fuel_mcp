@@ -92,7 +92,13 @@ def query_mcp(query: str) -> dict:
         temp_match = re.search(r"(-?\d+(?:\.\d+)?)\s*°?\s*c", q_lower)
         tempC = float(temp_match.group(1)) if temp_match else 15.0
 
-        dens_match = re.search(r"(\d+(?:\.\d+)?)\s*kg\s*/\s*m(?:³|3)", q_lower)
+        # --- Density extraction: handles both "850 kg/m3" and "density 850" ---
+        dens_match = (
+            re.search(r"(\d+(?:\.\d+)?)\s*kg\s*/\s*m(?:³|3)", q_lower)
+            or re.search(r"density\s+(\d+(?:\.\d+)?)", q_lower)
+            or re.search(r"\b(\d{3,4})\b(?=\s*(?:at|°|c|ton|vcf|volume|mass|fuel))", q_lower)
+        )
+
         rho15 = float(dens_match.group(1)) if dens_match else try_infer_density_from_product(q_lower)
         if rho15 is None:
             raise ValueError("❌ No density found or inferable from query")
@@ -120,7 +126,6 @@ def query_mcp(query: str) -> dict:
         # 6️⃣ Log success → SQLite only
         log_query(query, result, mode=op_type, success=True)
         logging.info(f"✅ Operation '{op_type}' completed successfully.")
-
         return result
 
     except Exception as e:
@@ -128,12 +133,19 @@ def query_mcp(query: str) -> dict:
         log_error(e, query=query, module="mcp_core")
         log_error_db("mcp_core", str(e))
         logging.error(f"❌ MCP query failed: {e}")
+
+        # Return standardized failure format (with _meta for consistency)
         return {
             "success": False,
             "error": str(e),
             "query": query,
             "mode": "error",
-            "timestamp": datetime.now(UTC).isoformat(),
+            "_meta": {
+                "timestamp": datetime.now(UTC).isoformat(),
+                "rho15": None,
+                "tempC": None,
+                "selected_table": "unknown",
+            },
         }
 
 
@@ -144,7 +156,8 @@ if __name__ == "__main__":
     tests = [
         "calculate VCF for diesel at 25°C",
         "get correction factor for heavy fuel oil at 30 °C",
-        "convert density 850 kg/m³ to ton",
+        "convert density 850 to ton at 25C",
+        "calculate VCF for fuel with density 850 at 25°C",
     ]
     for q in tests:
         print("\n🧠 Query:", q)

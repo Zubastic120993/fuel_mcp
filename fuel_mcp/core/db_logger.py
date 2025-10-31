@@ -57,7 +57,8 @@ def init_db():
 # 🧠 Logging Functions
 # =====================================================
 def log_query(query: str, result: dict | str, mode: str = "unknown", success: bool = True):
-    """Insert a query record into the database."""
+    """Insert a query record into the database (auto-initialize if missing)."""
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -69,7 +70,8 @@ def log_query(query: str, result: dict | str, mode: str = "unknown", success: bo
 
 
 def log_error(module: str, message: str, stacktrace: str = ""):
-    """Insert an error record into the database."""
+    """Insert an error record into the database (auto-initialize if missing)."""
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
@@ -81,7 +83,8 @@ def log_error(module: str, message: str, stacktrace: str = ""):
 
 
 def get_recent_queries(limit: int = 20) -> list[tuple]:
-    """Return recent N query entries."""
+    """Return recent N query entries (auto-initialize if missing)."""
+    init_db()
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     cur.execute(
