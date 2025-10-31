@@ -23,8 +23,14 @@ from fuel_mcp.core.error_handler import log_error
 from fuel_mcp.core.unit_converter import convert as unit_convert
 from fuel_mcp.core.vcf_official_full import vcf_iso_official, auto_correct
 from fuel_mcp.tool_integration import mcp_tool
-from fuel_mcp.core.db_logger import get_recent_queries, init_db, DB_PATH
+from fuel_mcp.core.db_logger import (
+    get_recent_queries,
+    init_db,
+    DB_PATH,
+    log_metrics_snapshot,   # ✅ Added new helper import
+)
 from fuel_mcp.core.async_logger import log_query_async, log_error_async
+
 
 # =====================================================
 # 🧩 Lifespan handler
@@ -158,7 +164,13 @@ def get_vcf(rho15: float = Query(...), tempC: float = Query(...)):
 # ⚖️ /auto_correct
 # =====================================================
 @app.get("/auto_correct")
-def auto_correction(fuel: str = Query(...), volume_m3: float | None = None, mass_ton: float | None = None, tempC: float = Query(...), rho15: float | None = None):
+def auto_correction(
+    fuel: str = Query(...),
+    volume_m3: float | None = None,
+    mass_ton: float | None = None,
+    tempC: float = Query(...),
+    rho15: float | None = None,
+):
     try:
         db_path = Path(__file__).parent.parent / "core" / "tables" / "fuel_data.json"
         with open(db_path) as f:
@@ -199,11 +211,10 @@ def get_tool_schema():
 
 
 # =====================================================
-# ⚠️ /errors — With optional module filtering
+# ⚠️ /errors — Optional module filter
 # =====================================================
 @app.get("/errors")
 def get_errors(limit: int = 20, module: str | None = None):
-    """Return recent errors from SQLite, optionally filtered by module."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
@@ -216,9 +227,11 @@ def get_errors(limit: int = 20, module: str | None = None):
             cur.execute("SELECT timestamp, module, message, stacktrace FROM errors ORDER BY id DESC LIMIT ?", (limit,))
         rows = cur.fetchall()
         conn.close()
+
         if not rows:
             msg = f"No errors recorded for module '{module}'." if module else "No errors recorded."
             return {"entries": [], "message": msg}
+
         return {
             "count": len(rows),
             "entries": [
@@ -233,40 +246,72 @@ def get_errors(limit: int = 20, module: str | None = None):
 
 
 # =====================================================
-# 📊 /metrics
+# 📊 /metrics — Extended diagnostics with DB logging
 # =====================================================
 @app.get("/metrics")
 def get_metrics():
-    """Return MCP performance metrics and uptime."""
+    """Return detailed Fuel MCP performance and system metrics."""
     try:
         conn = sqlite3.connect(DB_PATH)
         cur = conn.cursor()
+
+        # --- Query counts ---
         cur.execute("SELECT COUNT(*) FROM queries")
         total = cur.fetchone()[0] or 0
         cur.execute("SELECT COUNT(*) FROM queries WHERE success = 1")
         success = cur.fetchone()[0] or 0
         cur.execute("SELECT COUNT(*) FROM queries WHERE success = 0")
-        fail = cur.fetchone()[0] or 0
+        failed = cur.fetchone()[0] or 0
+
+        # --- Error counts ---
+        cur.execute("SELECT COUNT(*) FROM errors")
+        total_errors = cur.fetchone()[0] or 0
+
+        # --- Last activity ---
         cur.execute("SELECT timestamp FROM queries ORDER BY id DESC LIMIT 1")
         last_query = cur.fetchone()
         cur.execute("SELECT timestamp FROM errors ORDER BY id DESC LIMIT 1")
         last_error = cur.fetchone()
         conn.close()
 
-        ratio = (success / total * 100) if total > 0 else 0
+        # --- File sizes ---
+        db_size = Path(DB_PATH).stat().st_size / 1024 if Path(DB_PATH).exists() else 0
+        log_size = LOG_FILE.stat().st_size / 1024 if LOG_FILE.exists() else 0
+
+        # --- Metrics ---
+        uptime_seconds = round((datetime.now(UTC) - START_TIME).total_seconds(), 2)
+        success_ratio = (success / total * 100) if total > 0 else 0
+
+        # ✅ Save metrics snapshot to SQLite
+        log_metrics_snapshot(
+            uptime_seconds=uptime_seconds,
+            total=total,
+            success=success,
+            fail=failed,
+            ratio=f"{success_ratio:.1f}%",
+            db_size_kb=db_size,
+        )
+
+        # --- Structured response ---
         return {
+            "service": "Fuel MCP Metrics Snapshot",
             "version": app.version,
             "python_version": platform.python_version(),
-            "uptime_seconds": round((datetime.now(UTC) - START_TIME).total_seconds(), 2),
+            "uptime_seconds": uptime_seconds,
             "db_path": str(DB_PATH.resolve()),
+            "db_size_kb": round(db_size, 2),
+            "log_file": str(LOG_FILE.resolve()),
+            "log_size_kb": round(log_size, 2),
             "total_queries": total,
             "successful_queries": success,
-            "failed_queries": fail,
-            "success_ratio": f"{ratio:.1f}%",
+            "failed_queries": failed,
+            "total_errors": total_errors,
+            "success_ratio": f"{success_ratio:.1f}%",
             "last_query_time": last_query[0] if last_query else None,
             "last_error_time": last_error[0] if last_error else None,
-            "timestamp": datetime.now(UTC).isoformat(),  # ✅ required by tests
+            "timestamp": datetime.now(UTC).isoformat(),
         }
+
     except Exception as e:
         log_error(e, module="mcp_api")
         log_error_async("mcp_api", str(e))
@@ -329,5 +374,4 @@ def get_debug_info():
 # =====================================================
 if __name__ == "__main__":
     import uvicorn
-
     uvicorn.run("fuel_mcp.api.mcp_api:app", host="0.0.0.0", port=8000, reload=True)

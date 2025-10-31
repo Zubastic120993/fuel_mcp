@@ -3,7 +3,7 @@ fuel_mcp/core/db_logger.py
 ==========================
 
 SQLite logging and history storage for Fuel MCP.
-Keeps structured logs of every query, result, and error.
+Keeps structured logs of every query, result, error, and metrics snapshot.
 """
 
 import sqlite3
@@ -49,6 +49,20 @@ def init_db():
         )
     """)
 
+    # ✅ Table: metrics_log
+    cur.execute("""
+        CREATE TABLE IF NOT EXISTS metrics_log (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            timestamp TEXT,
+            uptime_seconds REAL,
+            total_queries INTEGER,
+            successful_queries INTEGER,
+            failed_queries INTEGER,
+            success_ratio TEXT,
+            db_size_kb REAL
+        )
+    """)
+
     conn.commit()
     conn.close()
 
@@ -82,6 +96,31 @@ def log_error(module: str, message: str, stacktrace: str = ""):
     conn.close()
 
 
+def log_metrics_snapshot(uptime_seconds, total, success, fail, ratio, db_size_kb):
+    """Record periodic metrics snapshot into SQLite."""
+    init_db()
+    conn = sqlite3.connect(DB_PATH)
+    cur = conn.cursor()
+    cur.execute(
+        """
+        INSERT INTO metrics_log
+        (timestamp, uptime_seconds, total_queries, successful_queries, failed_queries, success_ratio, db_size_kb)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
+        """,
+        (
+            datetime.now(UTC).isoformat(),
+            float(uptime_seconds),
+            int(total),
+            int(success),
+            int(fail),
+            str(ratio),
+            float(db_size_kb),
+        ),
+    )
+    conn.commit()
+    conn.close()
+
+
 def get_recent_queries(limit: int = 20) -> list[tuple]:
     """Return recent N query entries (auto-initialize if missing)."""
     init_db()
@@ -102,4 +141,6 @@ def get_recent_queries(limit: int = 20) -> list[tuple]:
 if __name__ == "__main__":
     init_db()
     log_query("test query", {"VCF": 0.9915}, "vcf", True)
+    log_metrics_snapshot(120.5, 5, 4, 1, "80.0%", 14.3)
     print(get_recent_queries(5))
+    print("✅ DB initialized and metrics snapshot recorded.")
