@@ -1,9 +1,24 @@
-README.md successfully generated at project root.
-or
+"""
+tools/generate_readme.py
+========================
+
+Auto-generates a unified README.md for the Fuel MCP project.
+Includes branch overview, phase roadmap, and usage examples.
+"""
+
+from datetime import datetime, UTC
+from pathlib import Path
+
+
+def generate_readme():
+    # Use timezone-aware UTC timestamp
+    timestamp = datetime.now(UTC).strftime("%Y-%m-%d %H:%M UTC")
+
+    readme = f"""# 🧩 Fuel MCP — Marine Fuel Correction Processor
 
 
 **Maintainer:** Chief Engineer *Volodymyr Zub*  
-**Last Updated:** 2025-11-01 12:56 UTC  
+**Last Updated:** {timestamp}  
 **Status:** Stable core engine (v1.0.3-final) - Dockerized & Ready for GUI
 
 ---
@@ -162,3 +177,12 @@ Fuel MCP implements the official ASTM D1250 / API MPMS Chapter 11.1 standard for
 
 (c) 2025 Volodymyr Zub.  
 Released under the MIT License.
+"""
+
+    # Write the README to project root
+    Path("README.md").write_text(readme, encoding="utf-8")
+    print("README.md successfully generated at project root.")
+
+
+if __name__ == "__main__":
+    generate_readme()
