@@ -113,12 +113,28 @@ def load_local_vector_store():
 # =====================================================
 # 🧠 Local Semantic Embedder
 # =====================================================
+import os
+
+# Allow pinning via env (set in docker-compose)
+MODEL_ID = os.getenv("HF_MODEL_ID", "nomic-ai/nomic-embed-text-v1.5")
+REVISION = os.getenv("HF_MODEL_REVISION")  # e.g., "main", a tag, or commit SHA
+
 try:
+    # Prefer loading with explicit revision if provided
     LOCAL_EMBEDDER = SentenceTransformer(
-        "nomic-ai/nomic-embed-text-v1.5",
-        trust_remote_code=True,  # ✅ Required for Nomic models
+        MODEL_ID,
+        trust_remote_code=True,  # required for Nomic models
+        revision=REVISION if REVISION else None,
     )
-    print("✅ Loaded local semantic model: nomic-ai/nomic-embed-text-v1.5")
+    print(f"✅ Loaded local semantic model: {MODEL_ID}" + (f" @ {REVISION}" if REVISION else ""))
+except TypeError:
+    # Older sentence-transformers versions may not support 'revision'
+    try:
+        LOCAL_EMBEDDER = SentenceTransformer(MODEL_ID, trust_remote_code=True)
+        print(f"✅ Loaded local semantic model: {MODEL_ID} (no revision pin support)")
+    except Exception as e:
+        LOCAL_EMBEDDER = None
+        print(f"⚠️ Could not load local embedding model: {e}")
 except Exception as e:
     LOCAL_EMBEDDER = None
     print(f"⚠️ Could not load local embedding model: {e}")
@@ -131,7 +147,7 @@ def embed_query_offline(query: str) -> np.ndarray:
     if LOCAL_EMBEDDER is None:
         # Fallback deterministic pseudo-embedding (if model missing)
         print("⚠️ Using fallback pseudo-embedding.")
-        vector = np.zeros(1536)
+        vector = np.zeros(1536, dtype=np.float32)
         for i, c in enumerate(query.lower()):
             vector[i % 1536] += ord(c)
         norm = np.linalg.norm(vector)
@@ -154,8 +170,8 @@ def find_table_offline(query: str, top_k: int = 3) -> list[dict]:
     q_vec = embed_query_offline(query)
     scored = []
     for entry in store:
-        emb = np.array(entry.get("embedding", []))
-        if len(emb) == 0:
+        emb = np.array(entry.get("embedding", []), dtype=np.float32)
+        if emb.size == 0:
             continue
         score = cosine_similarity(q_vec, emb)
         scored.append(
