@@ -1,0 +1,53 @@
+# =====================================================
+# 🧩 Fuel MCP — Docker Ignore v1.1.0-light
+# =====================================================
+
+# --- Version control ---
+.git
+.gitignore
+.gitattributes
+
+# --- Python cache / build artifacts ---
+__pycache__/
+*.py[cod]
+*.pyo
+*.so
+dist/
+build/
+*.egg-info/
+*.whl
+.pytest_cache/
+.cache/
+.ipynb_checkpoints/
+
+# --- Local environments & configs ---
+venv/
+.venv/
+.env
+.env.*
+.envrc
+
+# --- Runtime data (not baked into container) ---
+logs/
+*.log
+*.sqlite3
+*.db
+fuel_mcp/data/*.db
+fuel_mcp/data/cache/
+fuel_mcp/models/*.bin
+fuel_mcp/models/*.pkl
+
+# --- Dev-only content ---
+tests/
+docs/
+notebooks/
+examples/
+
+# --- IDE/editor settings ---
+.vscode/
+.idea/
+*.swp
+.DS_Store
+
+# --- Docker / compose artifacts ---
+docker-compose.override.yml
