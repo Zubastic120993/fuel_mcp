@@ -1,40 +1,42 @@
-# 🧩 Fuel MCP — v1.0.3-rc1 Release Notes
+# 🧩 Fuel MCP — Changelog Entry (v1.0.3 Post-Release Maintenance)
 
-**Maintainer:** Chief Engineer *Volodymyr Zub*  
-**Branch:** `feature/schema-unification-v1.0.3`  
-**Tag:** `v1.0.3-rc1`  
 **Date:** 2025-10-31  
-**Status:** ✅ Unified Schema Tests Passed  
+**Maintainer:** Chief Engineer *Volodymyr Zub*  
+**Version Tag:** `v1.0.3-final`  
+**Commit Ref:** post-release cleanup & documentation consolidation  
+**Scope:** Documentation and project structure maintenance  
 
 ---
 
 ## ✅ Summary
 
-| Area | Description | Status |
-|------|--------------|--------|
-| **Unified Response Schema** | All endpoints now follow a single format | ✅ Completed |
-| **Debug Response** | Includes `db_size_kb`, `log_size_kb`, `python_version` | ✅ Working |
-| **Backward Compatibility** | Legacy tests validated successfully | ✅ Safe |
-| **Version Tag** | `v1.0.3-rc1` published to GitHub | 🔖 Done |
+After the successful release of **v1.0.3-final**, all individual planning, polish, and closeout markdowns were merged into a single authoritative file:
+
+**→ `docs/Fuel_MCP_v1.0.3_Consolidated_Report.md`**
+
+This ensures a unified view of:
+- Core schema and API improvements  
+- CLI toolkit integration  
+- Regex parser and density loader milestones  
+- Metrics, debug, and changelog automation  
+- Future roadmap toward GUI & Docker  
 
 ---
 
-## <0001f9e0> Technical Highlights
+## 🔹 Files Removed
 
-- Introduced `fuel_mcp/core/response_schema.py`
-- Flattened key duplication for `/metrics`, `/vcf`, `/history`, `/errors`, `/tool`
-- Guaranteed JSON stability for both old & new API consumers
-- Added top-level mirrors for: `entries`, `VCF`, `status`, `total_queries`, `success_ratio`, etc.
-- Included runtime metadata: `_meta.timestamp`, `_meta.version`, `_meta.mode`, `_meta.query`
+| Old File | Reason |
+|-----------|--------|
+| `docs/Fuel_MCP_Roadmap_v1.0.3.md` | Superseded by consolidated report |
+| `docs/v1.0.3_polish_plan.md` | Merged into consolidated summary |
+| `docs/v1.0.3_Release_Notes.md` | Merged |
+| `docs/v1.0.3_closeout.md` | Merged |
+| `docs/v1.0.2_closeout.md` | Archived / Obsolete |
 
 ---
 
-## <0001f9ea> Test Results (Pytest Summary)
-
+## 🧭 Verification
+All contents verified under:
 ```bash
-pytest -q
-.......................................s.................
-=================================================================
-SKIPPED [1] fuel_mcp/tests/test_rag_fallback.py:47: No API key available
-=================================================================
-All other tests passed (100%)
+git log --oneline -1
+# 🧹 Docs cleanup — consolidated all v1.0.3 materials into a single report
