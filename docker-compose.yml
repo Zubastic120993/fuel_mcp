@@ -1,5 +1,8 @@
 services:
   fuel_mcp_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
     image: fuel_mcp:latest
     container_name: fuel_mcp_api
     restart: unless-stopped

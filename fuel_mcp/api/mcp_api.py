@@ -10,9 +10,9 @@ from fastapi import FastAPI, Query
 from fastapi.responses import JSONResponse
 from pathlib import Path
 import logging
-import json
 import sqlite3
 import platform
+import numpy as np
 from datetime import datetime, UTC
 from contextlib import asynccontextmanager
 
@@ -28,6 +28,7 @@ from fuel_mcp.core.async_logger import log_query_async, log_error_async
 from fuel_mcp.core.error_handler import log_error
 from fuel_mcp.tool_integration import mcp_tool
 from fuel_mcp import __version__
+
 
 # =====================================================
 # 🧩 Lifespan handler
@@ -65,6 +66,15 @@ logging.basicConfig(
     handlers=[logging.FileHandler(LOG_FILE), logging.StreamHandler()],
 )
 
+
+# =====================================================
+# 🔧 Include Routers (AFTER app definition)
+# =====================================================
+from .api_correlate import router as correlate_router
+
+app.include_router(correlate_router)
+
+
 # =====================================================
 # 🧠 /query — Intelligent Parser + Unified Schema
 # =====================================================
@@ -86,7 +96,6 @@ def run_query(text: str = Query(...)):
         if mode not in ("vcf", "convert", "reverse", "volume_input"):
             raise ValueError(f"Unsupported query mode: {mode}")
 
-        # Log + return schema
         log_query_async(text, result, mode, True)
         return JSONResponse(content=success_response(result, text, mode, app.version))
 
@@ -154,14 +163,12 @@ def auto_correction(
     query_str = f"auto_correct {fuel}@{tempC}"
     try:
         rho15 = rho15 or get_fuel_density(fuel)
-
         result = auto_correct(fuel=fuel, volume_m3=volume_m3, mass_ton=mass_ton, tempC=tempC)
         result["fuel"] = fuel
         result["rho15"] = round(rho15, 3)
 
         log_query_async(query_str, result, "auto_correct", True)
         return JSONResponse(content=success_response(result, query_str, "auto_correct", app.version))
-
     except Exception as e:
         log_error(e, query=query_str, module="mcp_api")
         log_error_async("mcp_api", str(e))

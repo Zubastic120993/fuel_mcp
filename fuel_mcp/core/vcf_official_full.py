@@ -164,3 +164,4 @@ def auto_correct(fuel: str, volume_m3=None, mass_ton=None,
         "usg_15C": round(convert(base_volume, "cum", "usg"), 1),
     }
     return result
+    
