@@ -1,0 +1,46 @@
+services:
+  fuel_mcp_api:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fuel_mcp:latest
+    container_name: fuel_mcp_api
+    restart: unless-stopped
+
+    ports:
+      - "8000:8000"
+
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      - MODE=OFFLINE
+      # Pin model revision to avoid auto code updates from HF Hub
+      # Set this to a specific tag/commit you trust (example: main, v1.0, or a commit SHA)
+      - HF_MODEL_ID=nomic-ai/nomic-embed-text-v1.5
+      - HF_MODEL_REVISION=4e1b2c2d3a12345abcde
+      # Optional: silence symlink warnings
+      - HF_HUB_DISABLE_SYMLINKS_WARNING=1
+      # If you move to ONLINE mode and need auth:
+      # - HF_TOKEN=${HF_TOKEN}
+
+    volumes:
+      - ./fuel_mcp/data:/app/fuel_mcp/data
+      - ./fuel_mcp/models:/app/fuel_mcp/models
+      - ./logs:/app/logs
+
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "python - <<'PY'\nimport urllib.request, sys\ntry:\n    with urllib.request.urlopen('http://localhost:8000/status', timeout=5) as r:\n        sys.exit(0 if r.status == 200 else 1)\nexcept Exception:\n    sys.exit(1)\nPY"
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 5
+      start_period: 90s
+
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
