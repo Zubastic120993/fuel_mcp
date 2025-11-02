@@ -4,6 +4,7 @@
 # 🔹 Virtual environments
 venv/
 .env
+.env.*
 
 # 🔹 Python cache & bytecode
 __pycache__/
@@ -23,6 +24,9 @@ logs/
 fuel_mcp/logs/
 fuel_mcp/data/conversion_history.json
 
+# 🔹 Local databases (not versioned)
+fuel_mcp/data/mcp_history.db
+
 # 🔹 Local data or reports (not versioned)
 fuel_mcp/tables/*.md
 fuel_mcp/tables/*.json
@@ -37,10 +41,10 @@ dist/
 *.spec
 .pytest_cache/
 
-# 🔹 Environment / secrets
-.env
-.env.*
-
-# 🔹 Misc
+# 🔹 Coverage / reports
 coverage/
-htmlcov/fuel_mcp/data/mcp_history.db
+htmlcov/
+
+# 🔹 Experimental or local-only GUI
+gui_astm/
+app_gradio*.py
