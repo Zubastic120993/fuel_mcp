@@ -49,17 +49,26 @@ It provides a **FastAPI service**, **Python module interface**, **Gradio web GUI
 git clone https://github.com/yourusername/fuel_mcp.git
 cd fuel_mcp
 
-# Run with Docker Compose
-docker-compose up -d
+# Build (optional – start script builds automatically)
+./start-docker.sh build
 
-# Check status
-docker-compose ps
+# Launch backend + Gradio frontend
+./start-docker.sh start
 
-# View logs
-docker-compose logs -f fuel_mcp_api
+# Run health checks
+./start-docker.sh test
+
+# View logs (Ctrl+C to exit)
+./start-docker.sh logs
+
+# Stop services when finished
+./start-docker.sh stop
 ```
 
-API will be available at `http://localhost:8000/docs`
+API docs: `http://localhost:8000/docs`  
+Gradio UI: `http://localhost:7860`
+
+Prefer to drive Docker Compose manually? Use `docker-compose -f docker-compose-gradio.yml up -d` and `docker-compose -f docker-compose-gradio.yml down --remove-orphans`.
 
 ### Option 2: Local Installation
 
@@ -243,61 +252,72 @@ pytest --cov=fuel_mcp --cov-report=html
 ---
 
 ## 🧱 Project Structure
+
+This branch is trimmed for the Docker Gradio package. The tree below lists the key files you actually get in this distribution:
+
 ```
-fuel_mcp/
- ├── api/                         # FastAPI REST endpoints
- │   ├── mcp_api.py              # Main API routes
- │   └── api_correlate.py        # API/Density correlation endpoint
- ├── core/                       # Core calculation engine
- │   ├── vcf_official_full.py    # ISO 91-1 / ASTM D1250 VCF engine
- │   ├── calculations.py         # Mass/volume calculations
- │   ├── conversion_engine.py    # Unit conversion logic
- │   ├── unit_converter.py       # ASTM Table 1 conversions
- │   ├── regex_parser.py         # NLP query parser
- │   ├── fuel_density_loader.py  # Dynamic fuel density loader
- │   ├── response_schema.py      # Unified API response schema
- │   ├── async_logger.py         # Async non-blocking logging
- │   ├── db_logger.py            # SQLite logging utilities
- │   ├── error_handler.py        # Error handling & tracking
- │   └── cli.py                  # Maintenance CLI commands
- ├── gui_astm/                   # Gradio web interface modules
- │   ├── app_astm_unified.py     # 🎯 UNIFIED launcher (all-in-one)
- │   ├── app_astm_api.py         # API gravity calculator
- │   ├── app_astm_rel_density.py # Relative density calculator
- │   ├── app_astm_density.py     # Density calculator
- │   ├── app_astm_vol_weight.py  # Volume/weight converter
- │   └── app_astm_universal_converter.py  # Universal unit converter
- ├── rag/                        # RAG & vector store (optional)
- │   ├── retriever.py            # Semantic retrieval
- │   ├── loader.py               # Document loader
- │   └── metadata.json           # Metadata store
- ├── tables/                     # ASTM reference tables
- │   ├── fuel_data.json          # Fuel density database
- │   ├── registry.json           # Table registry
- │   └── official/normalized/    # Normalized ASTM CSV tables
- ├── tests/                      # Comprehensive test suite (56+ tests)
- │   ├── test_api_*.py           # API endpoint tests
- │   ├── test_core.py            # Core engine tests
- │   ├── test_vcf_*.py           # VCF calculation tests
- │   ├── test_regex_parser_cases.py  # NLP parser tests
- │   └── test_cli_*.py           # CLI tests
- ├── flowise/                    # Flowise integration
- │   └── fuel_mcp_node.js        # Flowise node definition
- ├── data/                       # Runtime data
- │   └── mcp_history.db          # SQLite database
- ├── logs/                       # Application logs
- │   ├── mcp_queries.log         # Query logs
- │   ├── mcp_errors.log          # Error logs
- │   └── test_results.json       # Test results
- ├── tool_interface.py           # LangChain tool interface
- ├── tool_integration.py         # LangChain tool wrapper
- ├── docker-compose.yml          # Docker orchestration
- ├── Dockerfile                  # Container definition
- ├── pyproject.toml              # Build & dependency config
- └── requirements.txt            # Python dependencies
+.
+├── Dockerfile.gradio              # Multi-service image (compose)
+├── Dockerfile.gradio-single       # Optional single-container image
+├── docker-compose-gradio.yml      # Backend + Gradio services
+├── start-docker.sh                # Helper script (build/start/test/stop)
+├── requirements-gradio.txt        # Runtime dependencies
+├── requirements.txt               # Full development dependency set
+├── README.md                      # This file
+├── README-DOCKER.md               # Docker deployment guide
+├── QUICKSTART.md                  # 5-minute setup guide
+├── DEPLOYMENT-CHECKLIST.md        # Pre-deployment checklist
+├── PACKAGE-SUMMARY.md             # Package overview
+├── DOCKER-PACKAGE-README.txt      # Quick reference sheet
+├── DOCKER-OPTIONS.md              # Deployment scenarios comparison
+├── docs/                          # Additional documentation
+├── logs/                          # Runtime logs (mounted in Docker)
+└── fuel_mcp/
+    ├── __init__.py
+    ├── __main__.py
+    ├── api/                       # FastAPI backend
+    │   ├── mcp_api.py
+    │   └── api_correlate.py
+    ├── core/                      # Calculation engine & helpers
+    │   ├── unit_converter.py
+    │   ├── vcf_official_full.py
+    │   ├── regex_parser.py
+    │   ├── response_schema.py
+    │   ├── conversion_engine.py
+    │   ├── conversion_dispatcher.py
+    │   ├── fuel_density_loader.py
+    │   ├── calculations.py
+    │   ├── async_logger.py
+    │   ├── db_logger.py
+    │   ├── error_handler.py
+    │   ├── mcp_core.py            # Agent/RAG integration entry point
+    │   ├── rag_bridge.py          # Optional semantic lookup bridge
+    │   ├── setup_env.py
+    │   └── tables/
+    │       └── fuel_data.json
+    ├── gui_astm/                  # Gradio frontends
+    │   ├── app_astm_unified.py    # Unified UI (used in Docker)
+    │   ├── app_astm_api.py
+    │   ├── app_astm_rel_density.py
+    │   ├── app_astm_density.py
+    │   ├── app_astm_vol_weight.py
+    │   ├── app_astm_universal_converter.py
+    │   └── app_astm_units.py
+    ├── tables/                    # Normalised ASTM CSV tables & tooling
+    │   ├── official/normalized/*.csv
+    │   ├── loader.py
+    │   ├── manage_registry.py
+    │   ├── normalize_tables.py
+    │   ├── registry.json
+    │   └── summary_report.py
+    ├── data/                      # SQLite database (mounted in Docker)
+    │   └── mcp_history.db
+    ├── logs/                      # Package-level logs (mounted in Docker)
+    ├── tool_interface.py          # Tool wrapper (LangChain/OpenAI)
+    └── tool_integration.py        # LangChain StructuredTool helper
 ```
 
----
+> 🔎 Looking for the full automated test suite? It lives in the development branch. The Docker package keeps only the runtime essentials to minimise image size.
 
 ## ⚙️ Maintenance CLI
 
@@ -408,90 +428,3 @@ docker-compose ps
 # Manual health check
 curl http://localhost:8000/status
 ```
-
----
-
-## 🖥️ Web GUI Features
-
-The Gradio-based GUI provides interactive ASTM D1250 calculators.
-
-### 🎯 Unified Interface (`app_astm_unified.py`) — **Recommended**
-**All calculators in one browser with tabs:**
-- 🌡️ **API Gravity Entry** — Tables T.2–T.14
-- 📊 **Relative Density Entry** — Volume IV/V/VI → XII
-- 🧪 **Density Entry** — Tables 54A/B/C
-- ⚖️ **Volume & Weight Converter** — ASTM D1250 conversions
-- 🔄 **Universal Unit Converter** — Grouped conversions (Mass/Volume/Length)
-
-**Usage:** `python -m fuel_mcp.gui_astm.app_astm_unified` → `http://localhost:7860`
-
-### Individual Panels (Can run separately)
-
-#### API Gravity Calculator (`app_astm_api.py`)
-- API gravity → Density conversion
-- Temperature-based VCF calculation
-- Full ASTM Volume I–XI equivalents (T.2–T.14)
-
-#### Relative Density Calculator (`app_astm_rel_density.py`)
-- Relative Density (60/60°F) input
-- Temperature correction
-- Volume IV/V/VI → XII tables
-
-#### Density Calculator (`app_astm_density.py`)
-- Density @15°C input
-- Temperature correction (Table 54A/B/C)
-- Volume VII/VIII/IX → XII equivalents
-
-#### Volume/Weight Converter (`app_astm_vol_weight.py`)
-- Volume ↔ Mass conversions
-- Temperature-corrected calculations
-- Multiple fuel types support
-- BBLS, M³, Tons, US Gallons
-
-#### Universal Unit Converter (`app_astm_universal_converter.py`)
-- Grouped unit conversions (Mass, Volume, Length)
-- Dynamic unit selection based on category
-- Real-time equivalent calculations
-- Human-readable unit labels with internal ASTM mapping
-
----
-
-## 📚 Documentation
-
-- **CHANGELOG:** See [CHANGELOG.md](CHANGELOG.md) for version history
-- **API Documentation:** `http://localhost:8000/docs` (when running)
-- **Detailed Reports:** See `docs/` directory for comprehensive reports
-
----
-
-## 🧩 License
-
-© 2025 **Volodymyr Zub** — All rights reserved.
-
----
-
-## 📬 Contact
-
-**Chief Engineer Volodymyr Zub**  
-📧 [your.email@example.com](mailto:your.email@example.com)  
-🏷️ "Precision Engineering for Smarter Maritime Operations"
-
----
-
-## 🌟 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the repository
-2. Create your feature branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
-
----
-
-## 🔖 Version History
-
-See [CHANGELOG.md](CHANGELOG.md) for detailed version history and release notes.
-
-**Current Version:** v1.5.0 (2025-11-03)

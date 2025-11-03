@@ -48,3 +48,6 @@ htmlcov/
 # 🔹 Experimental or local-only GUI
 gui_astm/
 app_gradio*.pybuild.log
+
+.env
+fuel_mcp/.env
