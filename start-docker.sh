@@ -35,7 +35,7 @@ case "$CMD" in
     
     start|up)
         echo -e "${GREEN}🚀 Starting Fuel MCP services...${NC}"
-        docker-compose -f $COMPOSE_FILE up -d
+        docker-compose -f $COMPOSE_FILE up -d --remove-orphans
         echo ""
         echo -e "${GREEN}✅ Services started successfully!${NC}"
         echo ""
@@ -50,7 +50,7 @@ case "$CMD" in
     
     stop|down)
         echo -e "${YELLOW}🛑 Stopping services...${NC}"
-        docker-compose -f $COMPOSE_FILE down
+        docker-compose -f $COMPOSE_FILE down --remove-orphans
         echo -e "${GREEN}✅ Services stopped${NC}"
         ;;
     
@@ -85,7 +85,7 @@ case "$CMD" in
     
     clean)
         echo -e "${RED}🧹 Cleaning up Docker resources...${NC}"
-        docker-compose -f $COMPOSE_FILE down -v
+        docker-compose -f $COMPOSE_FILE down -v --remove-orphans
         docker rmi fuel-mcp-gradio:latest 2>/dev/null || true
         echo -e "${GREEN}✅ Cleanup complete${NC}"
         ;;
@@ -95,10 +95,12 @@ case "$CMD" in
         echo ""
         
         echo -e "${YELLOW}Testing backend API...${NC}"
-        if curl -s "http://localhost:8000/status" | grep -q "operational"; then
+        STATUS_PAYLOAD=$(curl -s "http://localhost:8000/status")
+        if echo "$STATUS_PAYLOAD" | grep -q '"status":"ok"'; then
             echo -e "${GREEN}✅ Backend API is working${NC}"
         else
             echo -e "${RED}❌ Backend API test failed${NC}"
+            echo "Payload: $STATUS_PAYLOAD"
             exit 1
         fi
         

@@ -26,7 +26,6 @@ from fuel_mcp.core.response_schema import success_response, error_response
 from fuel_mcp.core.db_logger import get_recent_queries, init_db, DB_PATH
 from fuel_mcp.core.async_logger import log_query_async, log_error_async
 from fuel_mcp.core.error_handler import log_error
-from fuel_mcp.tool_integration import mcp_tool
 from fuel_mcp import __version__
 
 
@@ -211,9 +210,7 @@ def get_debug_info():
 @app.get("/status")
 def get_status():
     try:
-        from fuel_mcp.core.rag_bridge import ONLINE_MODE
-        mode = "ONLINE" if ONLINE_MODE else "OFFLINE"
-        result = {"status": "ok", "mode": mode}
+        result = {"status": "ok", "mode": "OFFLINE"}
         return JSONResponse(content=success_response(result, "status check", "status", app.version))
     except Exception as e:
         return JSONResponse(
@@ -320,7 +317,7 @@ def get_tool_schema():
         schema = {
             "type": "function",
             "function": {
-                "name": mcp_tool.name,
+                "name": "FuelMCP",
                 "description": "Marine Fuel Correction Processor Tool",
                 "parameters": {
                     "type": "object",

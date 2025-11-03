@@ -8,8 +8,6 @@
 #   docker-compose -f docker-compose-gradio.yml down   (stop)
 # =============================================================================
 
-version: '3.8'
-
 services:
   # =====================================================
   # 🔹 FastAPI Backend Service (Port 8000)
