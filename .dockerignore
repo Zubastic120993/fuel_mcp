@@ -1,53 +1,89 @@
-# =====================================================
-# 🧩 Fuel MCP — Docker Ignore v1.1.0-light
-# =====================================================
+# ==========================
+# 🧩 Fuel MCP — Docker Build Ignore
+# ==========================
 
-# --- Version control ---
-.git
-.gitignore
-.gitattributes
-
-# --- Python cache / build artifacts ---
+# --- Python cache & build artifacts ---
 __pycache__/
 *.py[cod]
-*.pyo
+*$py.class
 *.so
-dist/
+.Python
 build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
 *.egg-info/
-*.whl
-.pytest_cache/
-.cache/
-.ipynb_checkpoints/
+.installed.cfg
+*.egg
+MANIFEST
 
-# --- Local environments & configs ---
+# --- Virtual Environment ---
 venv/
-.venv/
-.env
-.env.*
-.envrc
+ENV/
+env/
+.venv
 
-# --- Runtime data (not baked into container) ---
-logs/
-*.log
-*.sqlite3
-*.db
-fuel_mcp/data/*.db
-fuel_mcp/data/cache/
-fuel_mcp/models/*.bin
-fuel_mcp/models/*.pkl
+# --- Testing & Development ---
+.pytest_cache/
+.coverage
+.hypothesis/
+*.cover
+htmlcov/
+.tox/
+.nox/
 
-# --- Dev-only content ---
-tests/
-docs/
-notebooks/
-examples/
-
-# --- IDE/editor settings ---
+# --- IDE & Editor files ---
 .vscode/
 .idea/
 *.swp
+*.swo
+*~
 .DS_Store
 
-# --- Docker / compose artifacts ---
-docker-compose.override.yml
+# --- Git ---
+.git/
+.gitignore
+.gitattributes
+
+# --- Documentation (not needed in runtime) ---
+docs/
+*.md
+!README-DOCKER.md
+
+# --- Development scripts ---
+launch_gui.sh
+*.sh
+
+# --- Logs (will be mounted as volumes) ---
+logs/
+*.log
+
+# --- Test files ---
+fuel_mcp/tests/
+*/test_*.py
+test_*.py
+
+# --- Build artifacts ---
+*.tar.gz
+*.whl
+
+# --- RAG & Models (not needed for basic Gradio) ---
+fuel_mcp/rag/
+fuel_mcp/models/
+fuel_mcp/flowise/
+
+# --- CLI tools (not needed in Docker) ---
+fuel_mcp/cli/
+
+# --- Unnecessary data ---
+.env
+.env.*
+*.db-journal
