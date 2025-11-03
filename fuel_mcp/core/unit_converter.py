@@ -83,7 +83,6 @@ UNIT_CONVERSION = {
     "cum_to_litre": 1000.0,     # (†)
 }
 
-
 # =====================================================
 # 🔹 Normalize Unit Aliases
 # =====================================================
@@ -99,12 +98,10 @@ UNIT_ALIASES = {
     "imperial_gallon": "imp_gal",
 }
 
-
 def normalize(unit: str) -> str:
     """Normalize unit aliases to canonical ASTM keys."""
     unit = unit.lower().strip()
     return UNIT_ALIASES.get(unit, unit)
-
 
 # =====================================================
 # 🔹 Core Converter
@@ -112,24 +109,33 @@ def normalize(unit: str) -> str:
 def convert(value: float, from_unit: str, to_unit: str) -> float:
     """
     Convert between compatible units using ASTM D1250-80 factors.
-    Auto-reverse if only the inverse factor is stored.
+    Tries direct, reverse, and chained conversions (e.g. long_ton → tonne → kg).
     """
     f = normalize(from_unit)
     t = normalize(to_unit)
+
+    # Direct conversion
     key = f"{f}_to_{t}"
-    factor = UNIT_CONVERSION.get(key)
+    if key in UNIT_CONVERSION:
+        return round(value * UNIT_CONVERSION[key], 6)
 
-    if factor is not None:
-        return round(value * factor, 6)
-
-    # try reverse lookup
+    # Reverse conversion
     rev_key = f"{t}_to_{f}"
-    rev_factor = UNIT_CONVERSION.get(rev_key)
-    if rev_factor is not None:
-        return round(value / rev_factor, 6)
+    if rev_key in UNIT_CONVERSION:
+        return round(value / UNIT_CONVERSION[rev_key], 6)
+
+    # Chained conversion attempt via tonne, kg, or lb
+    intermediates = ["tonne", "kg", "lb"]
+    for mid in intermediates:
+        if f == mid or t == mid:
+            continue
+        try:
+            part1 = convert(value, f, mid)
+            return convert(part1, mid, t)
+        except Exception:
+            continue
 
     raise ValueError(f"No conversion factor for '{from_unit}' ↔ '{to_unit}'")
-
 
 # =====================================================
 # 🔹 Demo
@@ -138,3 +144,4 @@ if __name__ == "__main__":
     print(f"1 barrel = {convert(1, 'barrel', 'litre')} L")
     print(f"1 m³ = {convert(1, 'm3', 'usg')} US gallons")
     print(f"1 litre = {convert(1, 'litre', 'barrel')} barrel")
+    print(f"1 long ton = {convert(1, 'long_ton', 'kg')} kg")
