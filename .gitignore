@@ -47,4 +47,4 @@ htmlcov/
 
 # 🔹 Experimental or local-only GUI
 gui_astm/
-app_gradio*.py
+app_gradio*.pybuild.log
