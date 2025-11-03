@@ -1,0 +1,86 @@
+# ============================================================
+# 🧩 Fuel MCP — Single Container (Backend + Gradio)
+# ============================================================
+# This runs BOTH FastAPI backend and Gradio in one container
+# For production, use docker-compose-gradio.yml instead!
+# ============================================================
+
+FROM python:3.12-slim
+
+# ------------------------------------------------------------
+# 🧰 System setup
+# ------------------------------------------------------------
+WORKDIR /app
+
+ENV PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PIP_NO_CACHE_DIR=1
+
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    ca-certificates \
+    supervisor \
+    && rm -rf /var/lib/apt/lists/*
+
+# ------------------------------------------------------------
+# 📦 Install dependencies
+# ------------------------------------------------------------
+COPY requirements-gradio.txt .
+RUN python -m pip install --upgrade pip setuptools wheel \
+    && pip install --no-cache-dir -r requirements-gradio.txt
+
+# ------------------------------------------------------------
+# 📁 Copy required application files
+# ------------------------------------------------------------
+COPY fuel_mcp/__init__.py fuel_mcp/
+COPY fuel_mcp/__main__.py fuel_mcp/
+COPY fuel_mcp/core/ fuel_mcp/core/
+COPY fuel_mcp/api/ fuel_mcp/api/
+COPY fuel_mcp/gui_astm/ fuel_mcp/gui_astm/
+COPY fuel_mcp/tool_integration.py fuel_mcp/
+COPY fuel_mcp/tool_interface.py fuel_mcp/
+COPY fuel_mcp/tables/official/normalized/ fuel_mcp/tables/official/normalized/
+
+# Create directories
+RUN mkdir -p /app/fuel_mcp/data /app/logs
+
+# ------------------------------------------------------------
+# 👤 Security: Non-root user
+# ------------------------------------------------------------
+RUN useradd --create-home --uid 10001 appuser \
+    && chown -R appuser:appuser /app
+USER appuser
+
+# ------------------------------------------------------------
+# 🧩 App metadata
+# ------------------------------------------------------------
+ENV APP_VERSION=2.0.0
+EXPOSE 7860 8000
+
+# ------------------------------------------------------------
+# 🚀 Launch script (runs both services)
+# ------------------------------------------------------------
+# Copy startup script
+COPY --chown=appuser:appuser <<EOF /app/start-both.sh
+#!/bin/bash
+set -m
+
+# Start backend in background
+echo "Starting FastAPI backend..."
+uvicorn fuel_mcp.api.mcp_api:app --host 0.0.0.0 --port 8000 &
+BACKEND_PID=\$!
+
+# Wait for backend to be ready
+sleep 5
+
+# Start frontend in foreground
+echo "Starting Gradio frontend..."
+python -m fuel_mcp.gui_astm.app_astm_unified
+
+# If frontend exits, kill backend
+kill \$BACKEND_PID
+EOF
+
+RUN chmod +x /app/start-both.sh
+
+CMD ["/app/start-both.sh"]
+

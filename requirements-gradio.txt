@@ -1,20 +1,23 @@
-# ==========================
+# ============================================================
 # 🧩 Fuel MCP — Gradio Deployment Dependencies
 # Version: v2.0.0 (Gradio + FastAPI Backend)
-# ==========================
+# ============================================================
 
-# --- Core Web Frameworks ---
+# --- Web Frameworks ---
 gradio==5.7.1
-fastapi>=0.115.2
+fastapi==0.115.2
 uvicorn[standard]==0.30.6
 
-# --- Data Handling ---
+# --- Core Data Handling ---
 numpy==1.26.4
 pandas==2.2.3
 
-# --- Utilities ---
+# --- Networking / API ---
 requests==2.32.3
 
-# --- Async / DB Logging ---
+# --- Async DB Logging ---
 aiosqlite==0.20.0
 
+# --- Optional Utilities (for stability & UTF-8 logging) ---
+python-dotenv==1.0.1
+charset-normalizer>=3.3.2
