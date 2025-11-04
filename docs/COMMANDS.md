@@ -13,7 +13,7 @@
 #### Manual Installation Steps
 ```bash
 # 1. Clone repository (if not already done)
-git clone https://github.com/Zubastic120993/fuel_mcp.git
+git clone --branch feature/docker-gradio-package https://github.com/Zubastic120993/fuel_mcp.git fuel_mcp_gradio
 cd fuel_mcp_gradio
 
 # 2. Build Docker image
@@ -30,7 +30,7 @@ docker-compose -f docker-compose-gradio.yml build
 #### Quick Setup:
 ```bash
 # 1. Clone repository
-git clone https://github.com/Zubastic120993/fuel_mcp.git
+git clone --branch feature/docker-gradio-package https://github.com/Zubastic120993/fuel_mcp.git fuel_mcp_gradio
 cd fuel_mcp_gradio
 
 # 2. Create virtual environment

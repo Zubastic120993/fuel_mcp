@@ -23,7 +23,7 @@ python3 --version
 ### Step 1: Clone the Repository
 
 ```bash
-git clone https://github.com/Zubastic120993/fuel_mcp.git
+git clone --branch feature/docker-gradio-package https://github.com/Zubastic120993/fuel_mcp.git fuel_mcp_gradio
 cd fuel_mcp_gradio
 ```
 
@@ -282,7 +282,7 @@ pip install --upgrade -r requirements-gradio.txt
 
 **Install:**
 ```bash
-git clone <repo>
+git clone --branch feature/docker-gradio-package https://github.com/Zubastic120993/fuel_mcp.git fuel_mcp_gradio
 cd fuel_mcp_gradio
 python3 -m venv venv
 source venv/bin/activate
