@@ -87,3 +87,8 @@ fuel_mcp/cli/
 .env
 .env.*
 *.db-journal
+
+*.md
+!README.md
+*.sh
+!docker-entrypoint.sh

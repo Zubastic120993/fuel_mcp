@@ -2,20 +2,11 @@
 set -euo pipefail
 
 # ==========================================================
-# 🧩 Fuel MCP (Gradio Edition) — Universal Installer
+# 🧩 Fuel MCP (Gradio Edition) — Installer
 # ==========================================================
-# Can be run from *anywhere*, even on a clean system.
-#
-# Optional environment variables:
-#   REPO_URL   → GitHub repo (default: Zubastic120993/fuel_mcp)
-#   BRANCH     → branch to checkout (default: feature/docker-gradio-package)
-#   TARGET_DIR → clone folder (default: fuel_mcp_gradio)
-#
-# Example:
-#   REPO_URL=https://github.com/Zubastic120993/fuel_mcp.git \
-#   BRANCH=feature/docker-gradio-package \
-#   TARGET_DIR=fuel_mcp_gradio \
-#   ./install.sh
+# Clones or updates the repository and builds the Docker image.
+# Run this once, then start the system with:
+#   ./start-docker.sh start
 # ==========================================================
 
 REPO_URL="${REPO_URL:-https://github.com/Zubastic120993/fuel_mcp.git}"
@@ -23,7 +14,7 @@ BRANCH="${BRANCH:-feature/docker-gradio-package}"
 TARGET_DIR="${TARGET_DIR:-fuel_mcp_gradio}"
 
 # ----------------------------------------------------------
-# 1️⃣  Helper — Check for required commands
+# 1️⃣  Helpers
 # ----------------------------------------------------------
 need_cmd() {
   local cmd="$1"
@@ -54,39 +45,26 @@ cd "$TARGET_DIR"
 echo "📂 Current directory: $(pwd)"
 
 # ----------------------------------------------------------
-# 3️⃣  Clean Up Old Containers (if any)
-# ----------------------------------------------------------
-echo "🧹 Checking for old Fuel MCP containers..."
-OLD_CONTAINERS=$(docker ps -aq --filter "name=fuel_mcp" || true)
-if [ -n "$OLD_CONTAINERS" ]; then
-  echo "   Removing old containers..."
-  docker rm -f $OLD_CONTAINERS >/dev/null 2>&1 || true
-else
-  echo "   No old containers found."
-fi
-
-# ----------------------------------------------------------
-# 4️⃣  Start Dockerized Environment
-# ----------------------------------------------------------
-if [ ! -x "./start-docker.sh" ]; then
-  echo "🔧 Making start-docker.sh executable..."
-  chmod +x start-docker.sh
-fi
-
-echo "🚀 Launching Fuel MCP (Gradio + FastAPI stack)..."
-./start-docker.sh start
-
-# ----------------------------------------------------------
-# 5️⃣  Summary
+# 3️⃣  Build Docker Image
 # ----------------------------------------------------------
 echo
-echo "✅ Fuel MCP successfully deployed!"
-echo "🌐 Access Points:"
-echo "   • Gradio Frontend → http://localhost:7860"
-echo "   • FastAPI Backend → http://localhost:8000"
-echo "   • API Docs        → http://localhost:8000/docs"
+echo "🛠️  Building Docker image: fuel-mcp-gradio:latest ..."
+echo "⏳ This may take a few minutes on the first run."
+echo "💡 Tip: If Docker prompts for authentication, ensure you're logged in to Docker Hub."
 echo
-echo "🧪 Test system:  ./start-docker.sh test"
-echo "🛑 Stop system:  ./start-docker.sh stop"
+
+docker build -f Dockerfile.gradio -t fuel-mcp-gradio:latest .
+
+# ----------------------------------------------------------
+# 4️⃣  Completion Message
+# ----------------------------------------------------------
+echo
+echo "✅ Installation complete!"
+echo
+echo "Next steps:"
+echo "   ./start-docker.sh start   → Launch Fuel MCP"
+echo "   ./start-docker.sh test    → Verify installation"
+echo "   ./start-docker.sh stop    → Stop containers"
 echo
 echo "📦 Repository Path: $(pwd)"
+echo "🚀 You’re ready to go!"

@@ -1,73 +1,53 @@
 # =============================================================================
 # 🧩 Fuel MCP — Gradio Multi-Service Docker Compose
 # =============================================================================
-# Launch both FastAPI backend and Gradio unified frontend
-# Usage:
-#   docker-compose -f docker-compose-gradio.yml up
-#   docker-compose -f docker-compose-gradio.yml up -d  (background)
-#   docker-compose -f docker-compose-gradio.yml down   (stop)
-# =============================================================================
 
 services:
-  # =====================================================
-  # 🔹 FastAPI Backend Service (Port 8000)
-  # =====================================================
   backend:
     build:
       context: .
       dockerfile: Dockerfile.gradio
     image: fuel-mcp-gradio:latest
+    pull_policy: never
     container_name: fuel_mcp_backend
     restart: unless-stopped
-    
     ports:
       - "8000:8000"
-    
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-    
+      - MODE=api
     volumes:
       - ./fuel_mcp/data:/app/fuel_mcp/data
       - ./logs:/app/logs
-    
-    command: ["uvicorn", "fuel_mcp.api.mcp_api:app", "--host", "0.0.0.0", "--port", "8000"]
-    
+    command: ["api"]
     healthcheck:
-      test: ["CMD-SHELL", "python -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8000/status\", timeout=5)'"]
+      test: ["CMD-SHELL", "curl -fs http://localhost:8000/status || exit 1"]
       interval: 30s
       timeout: 10s
       retries: 3
       start_period: 10s
-    
     networks:
       - fuel_mcp_network
-  
-  # =====================================================
-  # 🔹 Gradio Unified Frontend (Port 7860)
-  # =====================================================
+
   frontend:
     image: fuel-mcp-gradio:latest
+    pull_policy: never
     container_name: fuel_mcp_gradio
     restart: unless-stopped
-    
     ports:
       - "7860:7860"
-    
     environment:
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
-    
+      - MODE=gui
     depends_on:
       backend:
         condition: service_healthy
-    
-    command: ["python", "-m", "fuel_mcp.gui_astm.app_astm_unified"]
-    
+    command: ["gui"]
     networks:
       - fuel_mcp_network
 
 networks:
   fuel_mcp_network:
     driver: bridge
-

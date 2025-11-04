@@ -1,9 +1,9 @@
 # =============================================================================
 # 🧩 Fuel MCP — Gradio Multi-Service Dockerfile
 # =============================================================================
-# Optimized for running both FastAPI backend and Gradio frontends
+# Supports both FastAPI backend and Gradio unified frontend
 # Build: docker build -f Dockerfile.gradio -t fuel-mcp-gradio:latest .
-# Run:   docker-compose -f docker-compose-gradio.yml up
+# Run:   docker compose -f docker-compose-gradio.yml up
 # =============================================================================
 
 FROM python:3.12-slim
@@ -14,70 +14,51 @@ FROM python:3.12-slim
 ENV PYTHONUNBUFFERED=1 \
     PYTHONDONTWRITEBYTECODE=1 \
     PIP_NO_CACHE_DIR=1 \
-    DEBIAN_FRONTEND=noninteractive
+    DEBIAN_FRONTEND=noninteractive \
+    APP_HOME=/app
 
-# Set working directory
-WORKDIR /app
+WORKDIR $APP_HOME
 
 # =====================================================
 # 📦 System Dependencies (minimal)
 # =====================================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
       ca-certificates \
+      curl \
       && rm -rf /var/lib/apt/lists/*
 
 # =====================================================
 # 🧩 Python Dependencies
 # =====================================================
-# Copy requirements first for better layer caching
 COPY requirements-gradio.txt ./
-
 RUN python -m pip install --upgrade pip setuptools wheel \
  && pip install --no-cache-dir -r requirements-gradio.txt
 
 # =====================================================
 # 📁 Application Code
 # =====================================================
-# Copy only necessary files for runtime
-COPY fuel_mcp/__init__.py fuel_mcp/
-COPY fuel_mcp/__main__.py fuel_mcp/
+COPY fuel_mcp/ fuel_mcp/
+COPY docker-entrypoint.sh ./docker-entrypoint.sh
+COPY README.md ./
 
-# Core modules
-COPY fuel_mcp/core/ fuel_mcp/core/
-
-# API modules
-COPY fuel_mcp/api/ fuel_mcp/api/
-
-# Gradio GUI apps
-COPY fuel_mcp/gui_astm/ fuel_mcp/gui_astm/
-
-# Tool integration
-COPY fuel_mcp/tool_integration.py fuel_mcp/
-COPY fuel_mcp/tool_interface.py fuel_mcp/
-
-# Data and tables
-COPY fuel_mcp/tables/official/normalized/ fuel_mcp/tables/official/normalized/
-
-# Create necessary directories
-RUN mkdir -p /app/fuel_mcp/data \
- && mkdir -p /app/logs
+RUN chmod +x docker-entrypoint.sh \
+ && mkdir -p $APP_HOME/fuel_mcp/data \
+ && mkdir -p $APP_HOME/logs
 
 # =====================================================
 # 👤 Security: Non-root user
 # =====================================================
 RUN useradd --create-home --uid 10001 appuser \
- && chown -R appuser:appuser /app
+ && chown -R appuser:appuser $APP_HOME
 USER appuser
 
 # =====================================================
 # 🌐 Networking
 # =====================================================
-# Expose FastAPI backend (8000) and Gradio frontend (7860)
 EXPOSE 8000 7860
 
 # =====================================================
-# 🚀 Default Startup Command
+# 🚀 Entry Point Dispatcher
 # =====================================================
-# Start FastAPI backend by default (use docker-compose for multi-service)
-CMD ["uvicorn", "fuel_mcp.api.mcp_api:app", "--host", "0.0.0.0", "--port", "8000"]
-
+ENTRYPOINT ["./docker-entrypoint.sh"]
+CMD ["api"]
