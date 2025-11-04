@@ -55,7 +55,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - ✅ 56 tests passed / 1 skipped (no API key)
 - Full coverage for regex parser, API endpoints, metrics, and errors
 
-**Detailed documentation:** See `docs/Fuel_MCP_v1.0.3_Consolidated_Report.md` and `docs/CHANGELOG_v1.0.3.md`
+**Detailed documentation:** See main README.md and related documentation files
 
 ---
 

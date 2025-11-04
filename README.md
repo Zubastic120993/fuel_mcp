@@ -9,6 +9,19 @@ It provides a **FastAPI service**, **Python module interface**, **Gradio web GUI
 
 ---
 
+## 📚 Documentation
+
+- **[Quick Start Guide](docs/QUICKSTART.md)** — Get up and running in 5 minutes
+- **[Docker Deployment](docs/README-DOCKER.md)** — Complete Docker setup guide
+- **[Local Installation](docs/INSTALL-LOCAL.md)** — Install without Docker
+- **[Command Reference](docs/COMMANDS.md)** — All available commands
+- **[Deployment Checklist](docs/DEPLOYMENT-CHECKLIST.md)** — Pre-deployment verification
+- **[Package Summary](docs/PACKAGE-SUMMARY.md)** — Package overview
+- **[Docker Options](docs/DOCKER-OPTIONS.md)** — Deployment scenarios
+- **[Changelog](docs/CHANGELOG.md)** — Version history
+
+---
+
 ## 🚀 Features
 
 ### Core Engine
@@ -263,14 +276,17 @@ This branch is trimmed for the Docker Gradio package. The tree below lists the k
 ├── start-docker.sh                # Helper script (build/start/test/stop)
 ├── requirements-gradio.txt        # Runtime dependencies
 ├── requirements.txt               # Full development dependency set
-├── README.md                      # This file
-├── README-DOCKER.md               # Docker deployment guide
-├── QUICKSTART.md                  # 5-minute setup guide
-├── DEPLOYMENT-CHECKLIST.md        # Pre-deployment checklist
-├── PACKAGE-SUMMARY.md             # Package overview
-├── DOCKER-PACKAGE-README.txt      # Quick reference sheet
-├── DOCKER-OPTIONS.md              # Deployment scenarios comparison
+├── README.md                      # This file (main documentation)
 ├── docs/                          # Additional documentation
+│   ├── README-DOCKER.md          # Docker deployment guide
+│   ├── QUICKSTART.md             # 5-minute setup guide
+│   ├── INSTALL-LOCAL.md          # Local installation (no Docker)
+│   ├── COMMANDS.md               # Command reference
+│   ├── DEPLOYMENT-CHECKLIST.md   # Pre-deployment checklist
+│   ├── PACKAGE-SUMMARY.md        # Package overview
+│   ├── DOCKER-PACKAGE-README.txt # Quick reference sheet
+│   ├── DOCKER-OPTIONS.md         # Deployment scenarios comparison
+│   └── CHANGELOG.md              # Version history
 ├── logs/                          # Runtime logs (mounted in Docker)
 └── fuel_mcp/
     ├── __init__.py

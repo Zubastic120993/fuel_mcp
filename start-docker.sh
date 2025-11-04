@@ -27,6 +27,27 @@ show_banner() {
 }
 
 # ----------------------------------------------------------
+# 🌐 Open Browser (cross-platform)
+# ----------------------------------------------------------
+open_browser() {
+  local url="$1"
+  sleep 3  # Wait for services to be ready
+  
+  if command -v open >/dev/null 2>&1; then
+    # macOS
+    open "$url" 2>/dev/null || true
+  elif command -v xdg-open >/dev/null 2>&1; then
+    # Linux
+    xdg-open "$url" 2>/dev/null || true
+  elif command -v start >/dev/null 2>&1; then
+    # Windows (Git Bash)
+    start "$url" 2>/dev/null || true
+  else
+    echo "   💡 Open manually: $url"
+  fi
+}
+
+# ----------------------------------------------------------
 # 🚀 Start Services
 # ----------------------------------------------------------
 start() {
@@ -41,6 +62,9 @@ start() {
   echo "   Gradio Frontend: http://localhost:7860"
   echo "   FastAPI Backend: http://localhost:8000"
   echo "   API Docs:        http://localhost:8000/docs"
+  echo
+  echo "🌐 Opening browser..."
+  open_browser "http://localhost:7860"
   echo
   echo "📊 View logs: docker compose -p $PROJECT_NAME -f $COMPOSE_FILE logs -f"
   echo "🛑 Stop:      ./start-docker.sh stop"
@@ -64,7 +88,17 @@ restart() {
   echo "🔁 Restarting services..."
   docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" down --remove-orphans
   docker compose -p "$PROJECT_NAME" -f "$COMPOSE_FILE" up -d --build --remove-orphans
+  
+  echo
   echo "✅ Restart complete"
+  echo
+  echo "📍 Access Points:"
+  echo "   Gradio Frontend: http://localhost:7860"
+  echo "   FastAPI Backend: http://localhost:8000"
+  echo "   API Docs:        http://localhost:8000/docs"
+  echo
+  echo "🌐 Opening browser..."
+  open_browser "http://localhost:7860"
 }
 
 # ----------------------------------------------------------

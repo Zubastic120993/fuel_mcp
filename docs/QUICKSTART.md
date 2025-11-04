@@ -138,7 +138,7 @@ Press `Ctrl+C` in both terminal windows
 
 - Read [README-DOCKER.md](README-DOCKER.md) for detailed Docker configuration
 - Explore the [API Documentation](http://localhost:8000/docs)
-- Check [README.md](README.md) for development setup
+- Check [README.md](../README.md) for development setup
 
 ---
 
