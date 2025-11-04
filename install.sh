@@ -5,10 +5,12 @@ set -euo pipefail
 # 🧩 Fuel MCP (Gradio Edition) — Universal Installer
 # ==========================================================
 # Can be run from *anywhere*, even on a clean system.
-# Environment variables (optional):
-#   REPO_URL   → GitHub URL (default: Zubastic120993/fuel_mcp)
+#
+# Optional environment variables:
+#   REPO_URL   → GitHub repo (default: Zubastic120993/fuel_mcp)
 #   BRANCH     → branch to checkout (default: feature/docker-gradio-package)
-#   TARGET_DIR → folder name for local clone (default: fuel_mcp_gradio)
+#   TARGET_DIR → clone folder (default: fuel_mcp_gradio)
+#
 # Example:
 #   REPO_URL=https://github.com/Zubastic120993/fuel_mcp.git \
 #   BRANCH=feature/docker-gradio-package \
@@ -52,7 +54,19 @@ cd "$TARGET_DIR"
 echo "📂 Current directory: $(pwd)"
 
 # ----------------------------------------------------------
-# 3️⃣  Start Dockerized Environment
+# 3️⃣  Clean Up Old Containers (if any)
+# ----------------------------------------------------------
+echo "🧹 Checking for old Fuel MCP containers..."
+OLD_CONTAINERS=$(docker ps -aq --filter "name=fuel_mcp" || true)
+if [ -n "$OLD_CONTAINERS" ]; then
+  echo "   Removing old containers..."
+  docker rm -f $OLD_CONTAINERS >/dev/null 2>&1 || true
+else
+  echo "   No old containers found."
+fi
+
+# ----------------------------------------------------------
+# 4️⃣  Start Dockerized Environment
 # ----------------------------------------------------------
 if [ ! -x "./start-docker.sh" ]; then
   echo "🔧 Making start-docker.sh executable..."
@@ -63,7 +77,7 @@ echo "🚀 Launching Fuel MCP (Gradio + FastAPI stack)..."
 ./start-docker.sh start
 
 # ----------------------------------------------------------
-# 4️⃣  Show Summary
+# 5️⃣  Summary
 # ----------------------------------------------------------
 echo
 echo "✅ Fuel MCP successfully deployed!"
